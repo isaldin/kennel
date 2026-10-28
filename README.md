@@ -50,11 +50,11 @@ Get the latest build from **[Releases](https://github.com/isaldin/kennel/release
 
 The builds are not code-signed yet, so the OS will warn you once.
 
-- **macOS:** if it says the app "is damaged" or "can't be opened", run
+- **macOS:** on first launch macOS says it can't verify the developer. Click **Done**, then open **System Settings → Privacy & Security** and click **Open Anyway** next to Kennel. Or clear the quarantine flag from the terminal:
   ```bash
   xattr -cr /Applications/Kennel.app
   ```
-  or right-click the app → **Open**.
+  Builds before 0.2.1 show "is damaged" instead; the same command fixes that.
 - **Linux (AppImage):** `chmod +x kennel-*.AppImage` and run it.
 
 ## Requirements

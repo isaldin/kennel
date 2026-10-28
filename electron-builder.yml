@@ -25,6 +25,12 @@ nsis:
   createDesktopShortcut: always
 mac:
   category: public.app-category.developer-tools
+  # No Developer ID yet: sign ad hoc, so the bundle's signature is valid and macOS asks to
+  # "Open Anyway" instead of calling the download damaged.
+  identity: '-'
+  # Hardened runtime is only needed for notarization; with an ad hoc identity it would block
+  # the native modules (no team ID). Turn it back on together with a Developer ID.
+  hardenedRuntime: false
   entitlementsInherit: build/entitlements.mac.plist
   target:
     - target: dmg
