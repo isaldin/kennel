@@ -20,6 +20,8 @@ English · [Русский](README.ru.md)
 > [!NOTE]
 > The interface is in Russian. Kennel is built and tested on macOS; the Linux builds are produced by CI but have not been tested by hand yet. Windows is not supported yet.
 
+![Kennel: server card with costs, services and audit](docs/screenshots/server.png)
+
 ## Features
 
 - **Inventory.** Server cards with provider, project, monthly cost and currency, billing day, panel URL and notes. Each server lists its services (Docker, Coolify, systemd, other) with a URL and an "expected to run" flag. Servers can be imported from `~/.ssh/config`.
@@ -29,6 +31,10 @@ English · [Русский](README.ru.md)
 - **Claude analysis.** The snapshot goes to the Claude Code CLI on your own subscription. Claude explains what runs where and raises problems. It may ask for extra read-only commands from a fixed allowlist, and each one runs only after you confirm it.
 - **Chat per finding.** Discuss any finding with Claude. It answers with commands for you to run yourself and never changes anything on the server.
 - **Themes.** Dark, light, Nord, Solarized light, Gruvbox, or follow the system, including the terminal palette.
+
+![Audit findings and a Claude chat about one of them](docs/screenshots/audit-chat.png)
+
+<sub>Screenshots use demo data.</sub>
 
 ## Download
 
