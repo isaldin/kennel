@@ -1,0 +1,101 @@
+@@begin host
+hostname=vps-1
+kernel=6.8.0-45-generic
+os=Ubuntu 24.04.1 LTS
+uptime=864000.52
+nproc=2
+load=0.08 0.12 0.10
+memTotalKb=4014080
+memAvailableKb=3010560
+@@end host 0
+@@begin upgradable
+12
+@@end upgradable 0
+@@begin disks
+Mounted on   Type   1B-blocks        Used
+/            ext4   84145745920 72364793856
+/boot        ext4   1023303680  190906368
+@@end disks 0
+@@begin containers
+[
+  {
+    "Id": "aaa111",
+    "Name": "/app",
+    "Image": "sha256:img1",
+    "RestartCount": 4,
+    "State": { "Status": "running", "StartedAt": "2026-10-10T08:00:00.000000000Z" },
+    "Config": {
+      "Image": "ghcr.io/me/app:latest",
+      "Labels": {
+        "traefik.http.routers.app.rule": "Host(`app.example.com`) || Host(`www.app.example.com`)",
+        "com.docker.compose.project": "app",
+        "org.opencontainers.image.source": "https://github.com/me/app"
+      }
+    },
+    "NetworkSettings": { "Ports": { "3000/tcp": null } }
+  },
+  {
+    "Id": "bbb222",
+    "Name": "/pg",
+    "Image": "sha256:img2",
+    "RestartCount": 0,
+    "State": { "Status": "running", "StartedAt": "2026-01-01T00:00:00Z" },
+    "Config": { "Image": "postgres:16", "Labels": {} },
+    "NetworkSettings": { "Ports": { "5432/tcp": [{ "HostIp": "0.0.0.0", "HostPort": "5432" }] } }
+  }
+]
+@@end containers 0
+@@begin images
+sha256:img1 2026-03-01T12:00:00.123456789Z
+sha256:img2 2025-09-15T00:00:00Z
+@@end images 0
+@@begin units
+cron.service loaded active running Regular background program processing daemon
+nginx.service loaded active running A high performance web server
+mybot.service loaded failed failed My Telegram bot
+@@end units 0
+@@begin custom_units
+/etc/systemd/system/mybot.service
+@@end custom_units 0
+@@begin ports
+LISTEN 0 4096 0.0.0.0:5432 0.0.0.0:* users:(("docker-proxy",pid=1201,fd=4))
+LISTEN 0 511 0.0.0.0:80 0.0.0.0:* users:(("nginx",pid=900,fd=6))
+LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:(("systemd-resolve",pid=500,fd=14))
+LISTEN 0 128 [::]:22 [::]:* users:(("sshd",pid=800,fd=4))
+@@end ports 0
+@@begin nginx
+# configuration file /etc/nginx/nginx.conf:
+http {
+    access_log /var/log/nginx/access.log;
+    upstream api_backend { server 127.0.0.1:8080; }
+    include /etc/nginx/sites-enabled/*;
+}
+# configuration file /etc/nginx/sites-enabled/blog:
+server {
+    listen 80;
+    server_name blog.example.com www.blog.example.com;
+    access_log /var/log/nginx/blog.access.log;
+    location / { proxy_pass http://127.0.0.1:2368; }
+}
+# configuration file /etc/nginx/sites-enabled/default:
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/html; # default page
+}
+server {
+    listen 80;
+    server_name api.example.com;
+    location / { proxy_pass http://api_backend; }
+}
+@@end nginx 0
+@@begin caddy
+@@end caddy 1
+@@begin logs
+1757000000 /var/log/nginx/access.log
+1755000000 /var/log/nginx/blog.access.log
+@@end logs 0
+@@begin cron
+# m h dom mon dow command
+0 3 * * * /usr/local/bin/backup.sh
+@@end cron 0

@@ -1,0 +1,14 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+*.tsbuildinfo
+
+# local / internal
+.idea/
+.superpowers/
+claudedocs/
+docs/superpowers/
+CLAUDE.md

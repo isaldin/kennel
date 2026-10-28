@@ -1,0 +1,33 @@
+name: Release
+
+# Push a tag that matches package.json's version (e.g. v0.1.0).
+# Each OS builds its installers and uploads them to a draft GitHub release;
+# review the draft and publish it by hand.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No signing certificates yet: build unsigned installers.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
