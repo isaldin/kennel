@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { EnpassItem, EnpassStatus } from '../../../shared/types'
 import { EnpassContext, useEnpass } from '../lib/enpassContext'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { Modal } from './Modal'
 
 export function EnpassProvider({ children }: { children: ReactNode }): React.JSX.Element {
@@ -46,6 +47,7 @@ function UnlockDialog({
   vaultPath: string | null
   onDone(ok: boolean): void
 }): React.JSX.Element {
+  const t = useT()
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -64,27 +66,24 @@ function UnlockDialog({
 
   return (
     <Modal
-      title="Разблокировать Enpass"
+      title={t('enpass.unlockTitle')}
       onClose={() => onDone(false)}
       footer={
         <>
-          <button onClick={() => onDone(false)}>Отмена</button>
+          <button onClick={() => onDone(false)}>{t('common.cancel')}</button>
           <button className="primary" disabled={!password || busy || !vaultPath} onClick={submit}>
-            {busy ? 'Проверяю…' : 'Разблокировать'}
+            {busy ? t('enpass.checking') : t('enpass.unlock')}
           </button>
         </>
       }
     >
       {vaultPath ? (
         <>
-          <p className="muted">
-            Хранилище открывается только на чтение. Мастер-пароль остаётся в памяти до блокировки
-            или выхода.
-          </p>
+          <p className="muted">{t('enpass.readOnlyNote')}</p>
           <input
             type="password"
             autoFocus
-            placeholder="Мастер-пароль Enpass"
+            placeholder={t('enpass.masterPassword')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && password && submit()}
@@ -92,7 +91,7 @@ function UnlockDialog({
           {error && <p className="error">{error}</p>}
         </>
       ) : (
-        <p className="error">Хранилище Enpass не найдено.</p>
+        <p className="error">{t('enpass.vaultNotFound')}</p>
       )}
     </Modal>
   )
@@ -105,6 +104,7 @@ export function EnpassPicker({
   onPick(item: EnpassItem): void
   onClose(): void
 }): React.JSX.Element {
+  const t = useT()
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<EnpassItem[]>([])
   const [error, setError] = useState('')
@@ -123,10 +123,10 @@ export function EnpassPicker({
   }, [query])
 
   return (
-    <Modal title="Выбрать запись Enpass" onClose={onClose} wide>
+    <Modal title={t('enpass.pickTitle')} onClose={onClose} wide>
       <input
         autoFocus
-        placeholder="Поиск по названию, логину или URL"
+        placeholder={t('enpass.searchPlaceholder')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -137,11 +137,13 @@ export function EnpassPicker({
             <div className="pick-title">{item.title}</div>
             <div className="muted small">
               {[item.username, item.url, item.category].filter(Boolean).join(' · ')}
-              {!item.hasPassword && ' · без пароля'}
+              {!item.hasPassword && t('enpass.noPassword')}
             </div>
           </li>
         ))}
-        {items.length === 0 && !error && <li className="muted empty">Ничего не найдено</li>}
+        {items.length === 0 && !error && (
+          <li className="muted empty">{t('enpass.nothingFound')}</li>
+        )}
       </ul>
     </Modal>
   )
@@ -155,6 +157,7 @@ export function EnpassLink({
   uuid: string
   onChange(uuid: string): void
 }): React.JSX.Element {
+  const t = useT()
   const { status, ensureUnlocked } = useEnpass()
   const [fetched, setFetched] = useState<EnpassItem | null>(null)
   const item = status.unlocked && fetched?.uuid === uuid ? fetched : null
@@ -173,7 +176,7 @@ export function EnpassLink({
     if (!(await ensureUnlocked())) return
     try {
       await window.api.enpass.copyPassword(uuid)
-      setMessage('Пароль скопирован, буфер очистится через 30 с')
+      setMessage(t('enpass.copied'))
     } catch (err) {
       setMessage(cleanError(err))
     }
@@ -189,20 +192,20 @@ export function EnpassLink({
             {item
               ? `${item.title}${item.username ? ` (${item.username})` : ''}`
               : status.unlocked
-                ? 'запись не найдена'
-                : 'Enpass заблокирован'}
+                ? t('enpass.itemNotFound')
+                : t('enpass.locked')}
           </span>
-          <button onClick={copy}>Скопировать пароль</button>
+          <button onClick={copy}>{t('enpass.copyPassword')}</button>
           {item?.url && (
-            <button onClick={() => window.api.openExternal(item.url)}>Открыть URL</button>
+            <button onClick={() => window.api.openExternal(item.url)}>{t('enpass.openUrl')}</button>
           )}
-          <button onClick={pick}>Сменить</button>
+          <button onClick={pick}>{t('enpass.change')}</button>
           <button className="ghost" onClick={() => onChange('')}>
-            Отвязать
+            {t('enpass.unlink')}
           </button>
         </>
       ) : (
-        <button onClick={pick}>Привязать запись Enpass</button>
+        <button onClick={pick}>{t('enpass.link')}</button>
       )}
       {message && <span className="muted small">{message}</span>}
       {picking && (

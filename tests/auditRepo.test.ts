@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { openDb, type Db } from '../src/main/db'
 import { Repo } from '../src/main/repo'
 import { AuditRepo } from '../src/main/audit/auditRepo'
-import { DEFAULT_THRESHOLDS, type Finding, type Snapshot } from '../src/shared/audit'
+import { DEFAULT_THRESHOLDS, INTERRUPTED, type Finding, type Snapshot } from '../src/shared/audit'
 import type { ServerInput } from '../src/shared/types'
 
 const SERVER: ServerInput = {
@@ -121,7 +121,7 @@ describe('AuditRepo', () => {
     expect(audit.getRun(stuck.id)).toMatchObject({
       status: 'failed',
       finishedAt: '2026-10-17T00:00:00.000Z',
-      analyzerError: 'Прервано: приложение было закрыто'
+      analyzerError: INTERRUPTED
     })
   })
 
@@ -151,7 +151,7 @@ describe('AuditRepo', () => {
     expect(audit.getAutoAuditHours()).toBe(24)
     audit.setAutoAuditHours(0)
     expect(audit.getAutoAuditHours()).toBe(0)
-    expect(() => audit.setAutoAuditHours(5)).toThrow('Недопустимый период')
+    expect(() => audit.setAutoAuditHours(5)).toThrow('Invalid period')
     expect(audit.getAutoAuditHours()).toBe(0)
   })
 

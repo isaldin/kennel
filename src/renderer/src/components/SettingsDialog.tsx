@@ -1,19 +1,31 @@
 import { useEffect, useState } from 'react'
 import { AUTO_AUDIT_HOURS } from '../../../shared/audit'
+import { LANGS, type Lang, type LangChoice, type MessageKey } from '../../../shared/i18n'
 import { cleanError } from '../lib/errors'
 import { TERM_FONTS, TERM_FONT_SIZES, ZOOMS } from '../lib/prefs'
 import { usePrefs } from '../lib/prefsContext'
-import { THEMES, type Theme, type ThemeChoice } from '../lib/themes'
+import { THEMES, type Theme, type ThemeChoice, type ThemeId } from '../lib/themes'
 import { Modal } from './Modal'
 import { ThresholdsDialog } from './ThresholdsDialog'
 
-const AUTO_AUDIT_LABEL: Record<number, string> = {
-  0: 'Выключена',
-  6: 'Каждые 6 часов',
-  12: 'Каждые 12 часов',
-  24: 'Раз в день',
-  168: 'Раз в неделю'
+const AUTO_AUDIT_LABEL: Record<number, MessageKey> = {
+  0: 'settings.autoAudit.0',
+  6: 'settings.autoAudit.6',
+  12: 'settings.autoAudit.12',
+  24: 'settings.autoAudit.24',
+  168: 'settings.autoAudit.168'
 }
+
+const THEME_LABEL: Record<ThemeId, MessageKey> = {
+  dark: 'settings.theme.dark',
+  light: 'settings.theme.light',
+  nord: 'settings.theme.nord',
+  'solarized-light': 'settings.theme.solarized-light',
+  gruvbox: 'settings.theme.gruvbox'
+}
+
+/** Each language in its own name, so it can be found whatever the current language is. */
+const LANG_NAME: Record<Lang, string> = { en: 'English', ru: 'Русский' }
 
 /** A miniature of the app window in the theme's colors. */
 function ThemePreview({ theme }: { theme: Theme }): React.JSX.Element {
@@ -60,7 +72,7 @@ function ThemeCard({
 }
 
 export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Element {
-  const { prefs, update } = usePrefs()
+  const { prefs, update, t } = usePrefs()
   const [autoHours, setAutoHours] = useState<number | null>(null)
   const [editingThresholds, setEditingThresholds] = useState(false)
   const [error, setError] = useState('')
@@ -83,22 +95,38 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
 
   return (
     <Modal
-      title="Настройки"
+      title={t('settings.title')}
       wide
       onClose={onClose}
       footer={
         <button className="primary" onClick={onClose}>
-          Готово
+          {t('settings.done')}
         </button>
       }
     >
       <div className="settings">
         <section>
-          <h3>Тема</h3>
+          <h3>{t('settings.language')}</h3>
+          <div className="segmented">
+            {(['system', ...LANGS] as LangChoice[]).map((language) => (
+              <button
+                key={language}
+                className={prefs.language === language ? 'selected' : ''}
+                aria-pressed={prefs.language === language}
+                onClick={() => update({ language })}
+              >
+                {language === 'system' ? t('settings.languageSystem') : LANG_NAME[language]}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3>{t('settings.theme')}</h3>
           <div className="theme-grid">
             <ThemeCard
               choice="system"
-              label="Как в системе"
+              label={t('settings.themeSystem')}
               selected={prefs.theme === 'system'}
               onSelect={(theme) => update({ theme })}
               preview={
@@ -112,7 +140,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
               <ThemeCard
                 key={id}
                 choice={id as ThemeChoice}
-                label={theme.label}
+                label={t(THEME_LABEL[id as ThemeId])}
                 selected={prefs.theme === id}
                 onSelect={(choice) => update({ theme: choice })}
                 preview={<ThemePreview theme={theme} />}
@@ -122,7 +150,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
         </section>
 
         <section>
-          <h3>Масштаб интерфейса</h3>
+          <h3>{t('settings.zoom')}</h3>
           <div className="segmented">
             {ZOOMS.map((zoom) => (
               <button
@@ -138,10 +166,10 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
         </section>
 
         <section>
-          <h3>Терминал</h3>
+          <h3>{t('settings.terminal')}</h3>
           <div className="form-grid">
             <label>
-              Шрифт
+              {t('settings.font')}
               <select
                 value={prefs.termFontFamily}
                 onChange={(e) => update({ termFontFamily: e.target.value })}
@@ -154,7 +182,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
               </select>
             </label>
             <label>
-              Размер шрифта
+              {t('settings.fontSize')}
               <select
                 value={prefs.termFontSize}
                 onChange={(e) => update({ termFontSize: Number(e.target.value) })}
@@ -172,16 +200,16 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
                 checked={prefs.cursorBlink}
                 onChange={(e) => update({ cursorBlink: e.target.checked })}
               />
-              Мигающий курсор
+              {t('settings.cursorBlink')}
             </label>
           </div>
         </section>
 
         <section>
-          <h3>Аудит</h3>
+          <h3>{t('settings.audit')}</h3>
           <div className="form-grid">
             <label>
-              Автоматическая перепроверка
+              {t('settings.autoAudit')}
               <select
                 value={autoHours ?? ''}
                 disabled={autoHours === null}
@@ -189,18 +217,15 @@ export function SettingsDialog({ onClose }: { onClose(): void }): React.JSX.Elem
               >
                 {AUTO_AUDIT_HOURS.map((hours) => (
                   <option key={hours} value={hours}>
-                    {AUTO_AUDIT_LABEL[hours]}
+                    {t(AUTO_AUDIT_LABEL[hours])}
                   </option>
                 ))}
               </select>
             </label>
             <div className="settings-inline">
-              <button onClick={() => setEditingThresholds(true)}>Пороги правил…</button>
+              <button onClick={() => setEditingThresholds(true)}>{t('settings.thresholds')}</button>
             </div>
-            <p className="muted small span-2">
-              Автопроверка идёт, пока приложение открыто, и только для серверов, которые ты уже хотя
-              бы раз проверил вручную.
-            </p>
+            <p className="muted small span-2">{t('settings.autoAuditHint')}</p>
           </div>
           {error && <p className="error">{error}</p>}
         </section>

@@ -1,4 +1,5 @@
 import type { AuditRun, Decision, DecisionInput, FindingChat, Snapshot, Thresholds } from './audit'
+import type { Lang } from './i18n'
 
 export interface Server {
   id: number
@@ -147,5 +148,7 @@ export interface Api {
   }
   /** Zooms the whole window (interface scale). */
   setZoom(factor: number): void
+  /** Tells main the interface language, for rule findings, notifications and Claude replies. */
+  setLanguage(lang: Lang): void
   openExternal(url: string): void
 }

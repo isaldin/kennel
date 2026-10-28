@@ -3,7 +3,6 @@ import type { ITheme } from '@xterm/xterm'
 export type ThemeId = 'dark' | 'light' | 'nord' | 'solarized-light' | 'gruvbox'
 
 export interface Theme {
-  label: string
   scheme: 'dark' | 'light'
   /** CSS custom properties set on :root (without the leading `--`). */
   ui: Record<string, string>
@@ -12,7 +11,6 @@ export interface Theme {
 
 export const THEMES: Record<ThemeId, Theme> = {
   dark: {
-    label: 'Тёмная',
     scheme: 'dark',
     ui: {
       bg: '#14161a',
@@ -56,7 +54,6 @@ export const THEMES: Record<ThemeId, Theme> = {
     }
   },
   light: {
-    label: 'Светлая',
     scheme: 'light',
     ui: {
       bg: '#f6f7f9',
@@ -100,7 +97,6 @@ export const THEMES: Record<ThemeId, Theme> = {
     }
   },
   nord: {
-    label: 'Nord',
     scheme: 'dark',
     ui: {
       bg: '#2e3440',
@@ -144,7 +140,6 @@ export const THEMES: Record<ThemeId, Theme> = {
     }
   },
   'solarized-light': {
-    label: 'Solarized светлая',
     scheme: 'light',
     ui: {
       bg: '#fdf6e3',
@@ -188,7 +183,6 @@ export const THEMES: Record<ThemeId, Theme> = {
     }
   },
   gruvbox: {
-    label: 'Gruvbox',
     scheme: 'dark',
     ui: {
       bg: '#282828',

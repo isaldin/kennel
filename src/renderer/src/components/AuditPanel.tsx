@@ -7,8 +7,17 @@ import {
   type Finding
 } from '../../../shared/audit'
 import type { Server } from '../../../shared/types'
-import { DECISION_LABEL, SEVERITY_LABEL, STATUS_LABEL, groupFindings, isHidden } from '../lib/audit'
+import {
+  DECISION_LABEL,
+  SEVERITY_LABEL,
+  STATUS_LABEL,
+  errorText,
+  groupFindings,
+  isHidden
+} from '../lib/audit'
 import { cleanError } from '../lib/errors'
+import { formatDateTime } from '../lib/format'
+import { usePrefs, useT } from '../lib/prefsContext'
 import { SnapshotPanel } from './SnapshotPanel'
 import { ThresholdsDialog } from './ThresholdsDialog'
 
@@ -18,9 +27,6 @@ interface Props {
   onServicesChanged(): void
   onDiscuss(finding: Finding): void
 }
-
-const formatDate = (iso: string): string =>
-  new Date(iso).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
 
 const formatElapsed = (ms: number): string => {
   const sec = Math.max(0, Math.floor(ms / 1000))
@@ -46,14 +52,17 @@ function FindingCard({
   onDiscuss(): void
 }): React.JSX.Element {
   const [until, setUntil] = useState(inAWeek)
+  const t = useT()
   return (
     <div className={`finding ${finding.severity}`}>
       <div className="finding-head">
-        <span className={`severity ${finding.severity}`}>{SEVERITY_LABEL[finding.severity]}</span>
+        <span className={`severity ${finding.severity}`}>
+          {t(SEVERITY_LABEL[finding.severity])}
+        </span>
         {finding.source === 'llm' && <span className="badge">Claude</span>}
         {decision && (
           <span className="badge">
-            {DECISION_LABEL[decision.kind]}
+            {t(DECISION_LABEL[decision.kind])}
             {decision.until ? ` ${decision.until}` : ''}
           </span>
         )}
@@ -64,11 +73,11 @@ function FindingCard({
       {finding.suggestedAction && <p className="finding-text muted">→ {finding.suggestedAction}</p>}
       <div className="finding-actions">
         <button className="primary" onClick={onDiscuss}>
-          {hasChat ? '💬 Продолжить обсуждение' : '💬 Обсудить с Claude'}
+          {`💬 ${hasChat ? t('audit.continueDiscussion') : t('audit.discuss')}`}
         </button>
         {(['keep', 'remove_planned', 'migrate'] as const).map((kind) => (
           <button key={kind} onClick={() => onDecide(kind, null)}>
-            {DECISION_LABEL[kind]}
+            {t(DECISION_LABEL[kind])}
           </button>
         ))}
         <input
@@ -78,7 +87,7 @@ function FindingCard({
           onChange={(e) => setUntil(e.target.value)}
         />
         <button disabled={!until} onClick={() => onDecide('ignore_until', until)}>
-          {DECISION_LABEL.ignore_until.replace('…', '')}
+          {t('audit.decision.hideUntil')}
         </button>
       </div>
     </div>
@@ -94,6 +103,7 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
   const [now, setNow] = useState(() => Date.now())
   const [chatKeys, setChatKeys] = useState<string[]>([])
   const running = isActive(run)
+  const { t, lang } = usePrefs()
 
   useEffect(() => {
     const load = (): void => void window.api.chat.keys(server.id).then(setChatKeys)
@@ -151,12 +161,13 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
     />
   )
 
-  let statusLine = 'Сервер ещё не проверялся'
+  let statusLine = t('audit.neverChecked')
   if (run && running) {
-    statusLine = `${STATUS_LABEL[run.status]} ${formatElapsed(now - Date.parse(run.startedAt))}`
+    statusLine = `${t(STATUS_LABEL[run.status])} ${formatElapsed(now - Date.parse(run.startedAt))}`
   } else if (run) {
-    const label = run.analyzerError === AUDIT_STOPPED ? 'Остановлено' : STATUS_LABEL[run.status]
-    statusLine = `${label} · ${formatDate(run.finishedAt ?? run.startedAt)}`
+    const label =
+      run.analyzerError === AUDIT_STOPPED ? t('audit.stoppedShort') : t(STATUS_LABEL[run.status])
+    statusLine = `${label} · ${formatDateTime(run.finishedAt ?? run.startedAt, lang)}`
   }
 
   return (
@@ -164,20 +175,20 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
       <section className="audit-panel">
         <div className="section-header">
           <div className="audit-title">
-            <h2>Аудит</h2>
+            <h2>{t('audit.title')}</h2>
             <span className="muted small">{statusLine}</span>
           </div>
           <div className="actions">
             {running ? (
-              <button onClick={() => window.api.audit.stop(server.id)}>Остановить</button>
+              <button onClick={() => window.api.audit.stop(server.id)}>{t('audit.stop')}</button>
             ) : (
               <button className="primary" onClick={start}>
-                {run ? 'Проверить снова' : 'Проверить сервер'}
+                {run ? t('audit.checkAgain') : t('audit.check')}
               </button>
             )}
             <button
               className="ghost"
-              title="Пороги правил"
+              title={t('audit.thresholds')}
               onClick={() => setEditingThresholds(true)}
             >
               ⚙
@@ -194,14 +205,14 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
         {run?.analyzerError && (
           <div className="notice">
             {run.status === 'failed'
-              ? run.analyzerError
-              : `Анализ Claude недоступен: ${run.analyzerError}. Показаны только сигналы правил.`}
+              ? errorText(run.analyzerError, t)
+              : t('audit.claudeUnavailable', { error: errorText(run.analyzerError, t) })}
           </div>
         )}
 
         {run &&
           (open.length === 0 ? (
-            <p className="muted">{running ? 'Идёт проверка…' : 'Открытых проблем нет.'}</p>
+            <p className="muted">{running ? t('audit.checking') : t('audit.noOpenFindings')}</p>
           ) : (
             groupFindings(open).map(([severity, list]) => (
               <div key={severity} className="finding-group">
@@ -214,9 +225,9 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
           <table className="table">
             <thead>
               <tr>
-                <th>Объект</th>
-                <th>Что это</th>
-                <th>Проект</th>
+                <th>{t('audit.items.object')}</th>
+                <th>{t('audit.items.whatItIs')}</th>
+                <th>{t('audit.items.project')}</th>
               </tr>
             </thead>
             <tbody>
@@ -237,7 +248,7 @@ export function AuditPanel({ server, onServicesChanged, onDiscuss }: Props): Rea
         {decided.length > 0 && (
           <div>
             <button className="ghost" onClick={() => setShowDecided((v) => !v)}>
-              {showDecided ? '▾' : '▸'} Решённые ({decided.length})
+              {showDecided ? '▾' : '▸'} {t('audit.decided', { count: decided.length })}
             </button>
             {showDecided && <div className="finding-group">{decided.map(card)}</div>}
           </div>

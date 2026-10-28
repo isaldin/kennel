@@ -10,7 +10,13 @@ import {
 } from '../src/main/audit/auditService'
 import { openDb } from '../src/main/db'
 import { Repo } from '../src/main/repo'
-import type { AuditRun, Decision, Finding, Snapshot } from '../src/shared/audit'
+import {
+  AUDIT_STOPPED,
+  type AuditRun,
+  type Decision,
+  type Finding,
+  type Snapshot
+} from '../src/shared/audit'
 import type { Server, ServerInput } from '../src/shared/types'
 
 const NOW = new Date('2026-10-17T00:00:00Z')
@@ -230,14 +236,14 @@ describe('AuditService', () => {
     h.service.start('manual', 1)
     await h.service.done()
     expect(h.execs).toEqual([])
-    expect(h.prompts[1].prompt).toContain('Отклонено allowlist')
+    expect(h.prompts[1].prompt).toContain('Rejected by the allowlist')
   })
 
   it('runs one audit per server at a time', async () => {
     h.service.start('manual', 1)
     expect(h.service.isRunning(1)).toBe(true)
     expect(h.service.isRunning(2)).toBe(false)
-    expect(() => h.service.start('manual', 1)).toThrow('Проверка этого сервера уже идёт')
+    expect(() => h.service.start('manual', 1)).toThrow('This server is already being audited')
     h.service.start('manual', 2)
     expect(h.service.isRunning()).toBe(true)
     await h.service.done()
@@ -394,7 +400,7 @@ describe('AuditService resilience', () => {
 })
 
 describe('AuditService.stop', () => {
-  const STOPPED = 'Остановлено пользователем'
+  const STOPPED = AUDIT_STOPPED
   const never = <T>(): Promise<T> => new Promise<T>(() => {})
 
   it('stops a run stuck in collection', async () => {

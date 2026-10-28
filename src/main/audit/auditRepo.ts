@@ -3,6 +3,7 @@ import {
   AUTO_AUDIT_HOURS,
   DEFAULT_AUTO_AUDIT_HOURS,
   DEFAULT_THRESHOLDS,
+  INTERRUPTED,
   type AuditRun,
   type Decision,
   type DecisionInput,
@@ -10,6 +11,7 @@ import {
   type Snapshot,
   type Thresholds
 } from '../../shared/audit'
+import { t } from '../i18n'
 
 interface RunRow {
   id: number
@@ -126,7 +128,7 @@ export class AuditRepo {
         status: 'failed',
         finishedAt,
         pendingCommands: [],
-        analyzerError: 'Прервано: приложение было закрыто'
+        analyzerError: INTERRUPTED
       })
     }
   }
@@ -190,7 +192,7 @@ export class AuditRepo {
   }
 
   setAutoAuditHours(hours: number): void {
-    if (!AUTO_AUDIT_HOURS.includes(hours)) throw new Error(`Недопустимый период: ${hours}`)
+    if (!AUTO_AUDIT_HOURS.includes(hours)) throw new Error(t('main.badPeriod', { hours }))
     this.setSetting(AUTO_AUDIT_KEY, hours)
   }
 

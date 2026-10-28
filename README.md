@@ -18,9 +18,9 @@ English · [Русский](README.ru.md)
 </div>
 
 > [!NOTE]
-> The interface is in Russian. Kennel is built and tested on macOS; the Linux builds are produced by CI but have not been tested by hand yet. Windows is not supported yet.
+> The interface is in English and Russian. Kennel is built and tested on macOS; the Linux builds are produced by CI but have not been tested by hand yet. Windows is not supported yet.
 
-![Kennel: server card with costs, services and audit](docs/screenshots/server.png)
+![Kennel: server card with costs, services and audit](docs/screenshots/en/server.png)
 
 ## Features
 
@@ -30,9 +30,9 @@ English · [Русский](README.ru.md)
 - **Server audit.** A read-only script collects a snapshot over SSH: host info, disks, containers and images, systemd units, listening ports, nginx/Caddy vhosts, Traefik labels, cron, TLS certificates. Deterministic rules flag stale images, crash loops, public ports, unknown or missing services, idle servers, full disks and expiring certificates. Servers are re-audited automatically on a schedule.
 - **Claude analysis.** The snapshot goes to the Claude Code CLI on your own subscription. Claude explains what runs where and raises problems. It may ask for extra read-only commands from a fixed allowlist, and each one runs only after you confirm it.
 - **Chat per finding.** Discuss any finding with Claude. It answers with commands for you to run yourself and never changes anything on the server.
-- **Themes.** Dark, light, Nord, Solarized light, Gruvbox, or follow the system, including the terminal palette.
+- **Themes and languages.** Dark, light, Nord, Solarized light, Gruvbox, or follow the system, including the terminal palette. English or Russian, following the system by default; Claude answers in the interface language.
 
-![Audit findings and a Claude chat about one of them](docs/screenshots/audit-chat.png)
+![Audit findings and a Claude chat about one of them](docs/screenshots/en/audit-chat.png)
 
 <sub>Screenshots use demo data.</sub>
 

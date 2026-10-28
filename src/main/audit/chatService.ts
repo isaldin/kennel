@@ -1,5 +1,6 @@
 import type { ChatMessage, CommandRequest, FindingChat } from '../../shared/audit'
 import type { Server } from '../../shared/types'
+import { t } from '../i18n'
 import type { Repo } from '../repo'
 import type { ExecResult } from '../sshConnect'
 import { executeRequest, validateRequest } from './allowlist'
@@ -28,7 +29,7 @@ export interface ChatDeps {
   answerTimeoutMs?: number
 }
 
-const FOLLOW_UP = 'Ответь пользователю с учётом этих данных.'
+const FOLLOW_UP = 'Answer the user, taking this data into account.'
 
 interface ActiveChat extends Controlled {
   promise: Promise<void>
@@ -49,12 +50,12 @@ export class ChatService {
   /** Adds the question and starts Claude on it in the background. */
   send(serverId: number, findingKey: string, text: string): FindingChat {
     const id = chatId(serverId, findingKey)
-    if (this.active.has(id)) throw new Error('Claude ещё отвечает')
+    if (this.active.has(id)) throw new Error(t('main.claudeBusy'))
     const server = this.deps.repo.listServers().find((s) => s.id === serverId)
-    if (!server) throw new Error(`Сервер ${serverId} не найден`)
+    if (!server) throw new Error(t('main.serverNotFound', { id: serverId }))
     const finding = this.deps.audit.latestRun(serverId)?.findings.find((f) => f.key === findingKey)
     let chat = this.deps.chats.get(serverId, findingKey)
-    if (!chat && !finding) throw new Error('Проблема не найдена в последнем аудите')
+    if (!chat && !finding) throw new Error(t('main.findingNotFound'))
     chat ??= {
       serverId,
       findingKey,

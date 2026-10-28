@@ -176,7 +176,7 @@ describe('resolveClaudeBin', () => {
     const home = mkdtempSync(join(tmpdir(), 'home-'))
     await expect(
       resolveClaudeBin({ KENNEL_CLAUDE_BIN: '/nope', HOME: home, SHELL: '/bin/false' })
-    ).rejects.toThrow(/Claude CLI не найден/)
+    ).rejects.toThrow(/Claude CLI not found/)
   })
 })
 

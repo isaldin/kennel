@@ -1,4 +1,7 @@
+import type { MessageKey, T } from '../../../shared/i18n'
 import {
+  AUDIT_STOPPED,
+  INTERRUPTED,
   isDecided,
   type AuditStatus,
   type Decision,
@@ -7,25 +10,32 @@ import {
   type Severity
 } from '../../../shared/audit'
 
-export const SEVERITY_LABEL: Record<Severity, string> = {
-  critical: 'Критично',
-  warning: 'Внимание',
-  info: 'Инфо'
+export const SEVERITY_LABEL: Record<Severity, MessageKey> = {
+  critical: 'audit.severity.critical',
+  warning: 'audit.severity.warning',
+  info: 'audit.severity.info'
 }
 
-export const DECISION_LABEL: Record<DecisionKind, string> = {
-  keep: 'Оставить',
-  remove_planned: 'Удалю',
-  migrate: 'Перенесу',
-  ignore_until: 'Скрыть до…'
+export const DECISION_LABEL: Record<DecisionKind, MessageKey> = {
+  keep: 'audit.decision.keep',
+  remove_planned: 'audit.decision.removePlanned',
+  migrate: 'audit.decision.migrate',
+  ignore_until: 'audit.decision.ignoreUntil'
 }
 
-export const STATUS_LABEL: Record<AuditStatus, string> = {
-  collecting: 'Сбор данных…',
-  analyzing: 'Анализ…',
-  awaiting_confirmation: 'Ждёт подтверждения команд',
-  done: 'Готово',
-  failed: 'Ошибка'
+export const STATUS_LABEL: Record<AuditStatus, MessageKey> = {
+  collecting: 'audit.status.collecting',
+  analyzing: 'audit.status.analyzing',
+  awaiting_confirmation: 'audit.status.awaitingConfirmation',
+  done: 'audit.status.done',
+  failed: 'audit.status.failed'
+}
+
+/** An audit or chat error for display: stored sentinels are translated, other text is shown as is. */
+export function errorText(error: string, t: T): string {
+  if (error === AUDIT_STOPPED) return t('audit.stopped')
+  if (error === INTERRUPTED) return t('audit.interrupted')
+  return error
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'warning', 'info']

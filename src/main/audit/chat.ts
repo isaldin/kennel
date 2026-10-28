@@ -1,11 +1,13 @@
 import type { Decision, Finding, Snapshot } from '../../shared/audit'
 import type { Server, Service } from '../../shared/types'
+import { getLang } from '../i18n'
 import type { RawCommandRequest } from './allowlist'
 import {
   COMMAND_REQUESTS_SCHEMA,
   COMMANDS_HELP,
   invokeClaude,
   json,
+  replyLanguageNote,
   trimSnapshot,
   type ClaudeCall
 } from './analyzer'
@@ -20,19 +22,19 @@ export const CHAT_SCHEMA = {
   }
 }
 
-export const CHAT_SYSTEM_PROMPT = `Ты помогаешь владельцу VPS разобраться с одной проблемой, которую нашёл аудит. Тебе дают находку, описание сервера, реестр его сервисов, свежий снимок сервера и прошлые решения пользователя. Дальше пользователь задаёт вопросы.
+export const CHAT_SYSTEM_PROMPT = `You help a VPS owner deal with one problem the audit found. You get the finding, the server's description, its service registry, a fresh snapshot of the server and the user's past decisions. Then the user asks questions.
 
-reply — твой ответ пользователю по-русски, кратко и по делу. Форматирование простое: абзацы, списки через «- », имена и пути в \`обратных кавычках\`, команды — блоками \`\`\`bash. Без заголовков (#) и без **жирного**: интерфейс их не отображает.
+reply is your answer to the user, brief and to the point. Keep formatting simple: paragraphs, lists with "- ", names and paths in \`backticks\`, commands in \`\`\`bash blocks. No headings (#) and no **bold**: the interface does not render them.
 
-Сам ты не можешь ничего менять на сервере. Если пользователь хочет что-то сделать (остановить, удалить, обновить, перезапустить, закрыть порт), веди его ПО ОДНОМУ ШАГУ:
-- в каждом ответе давай только одну команду (или один короткий блок из 2–3 строк, которые имеет смысл выполнить вместе) и коротко объясни, что она делает и что ожидаешь увидеть;
-- попроси прислать вывод и дождись его; следующий шаг выбирай по фактическому результату, а не по предположению;
-- не выписывай заранее весь план команд; при желании можно одной строкой назвать, сколько примерно шагов впереди;
-- начинай с безопасной проверки, перед изменяющей командой предупреди о последствиях и скажи, как откатить.
-Используй реальные имена контейнеров, юнитов, путей и доменов из снимка.
+You cannot change anything on the server yourself. If the user wants to do something (stop, remove, update, restart, close a port), guide them ONE STEP AT A TIME:
+- give only one command per answer (or one short block of 2–3 lines that make sense to run together), and briefly explain what it does and what you expect to see;
+- ask them to send the output and wait for it; pick the next step from the actual result, not from a guess;
+- do not write out the whole plan of commands up front; you may say in one line roughly how many steps are left;
+- start with a safe check; before a command that changes something, warn about the consequences and say how to roll back.
+Use the real container, unit, path and domain names from the snapshot.
 
-command_requests: если для ответа не хватает данных с сервера, попроси команды только для чтения. ${COMMANDS_HELP}
-Не проси команды, если можно ответить по снимку. Когда просишь команды, в reply коротко скажи, что хочешь проверить.`
+command_requests: if you lack data from the server to answer, ask for read-only commands. ${COMMANDS_HELP}
+Do not ask for commands if the snapshot is enough. When you ask for commands, say briefly in reply what you want to check.`
 
 export function buildChatPrompt(i: {
   server: Server
@@ -44,9 +46,9 @@ export function buildChatPrompt(i: {
 }): string {
   const { key, severity, title, explanation, suggestedQuestion, suggestedAction } = i.finding
   return [
-    '## Находка',
+    '## Finding',
     json({ key, severity, title, explanation, suggestedQuestion, suggestedAction }),
-    '## Сервер',
+    '## Server',
     json({
       id: i.server.id,
       name: i.server.name,
@@ -56,7 +58,7 @@ export function buildChatPrompt(i: {
       currency: i.server.currency,
       notes: i.server.notes
     }),
-    '## Реестр сервисов',
+    '## Service registry',
     json(
       i.services.map(({ name, kind, url, port, description, expected, notes }) => ({
         name,
@@ -68,11 +70,11 @@ export function buildChatPrompt(i: {
         notes
       }))
     ),
-    '## Снимок',
-    i.snapshot ? json(trimSnapshot(i.snapshot)) : 'Снимка нет.',
-    '## Решения пользователя',
+    '## Snapshot',
+    i.snapshot ? json(trimSnapshot(i.snapshot)) : 'No snapshot.',
+    '## User decisions',
     json(i.decisions),
-    '## Вопрос пользователя',
+    '## User question',
     i.question
   ].join('\n\n')
 }
@@ -86,7 +88,11 @@ export async function runChatClaude(call: ClaudeCall): Promise<ChatReply> {
   const { sessionId, output } = await invokeClaude<{
     reply: string
     command_requests: RawCommandRequest[]
-  }>({ ...call, schema: CHAT_SCHEMA, systemPrompt: CHAT_SYSTEM_PROMPT })
+  }>({
+    ...call,
+    schema: CHAT_SCHEMA,
+    systemPrompt: `${CHAT_SYSTEM_PROMPT}\n\n${replyLanguageNote(getLang())}`
+  })
   return {
     sessionId,
     output: { reply: output.reply ?? '', commandRequests: output.command_requests ?? [] }

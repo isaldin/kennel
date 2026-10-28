@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import type { DecisionInput, Thresholds } from '../shared/audit'
+import { isLang, resolveLang } from '../shared/i18n'
 import type { HostKeyPrompt, Server, ServerInput, ServiceInput } from '../shared/types'
 import { resolveClaudeBin, runClaude, type ClaudeCall } from './audit/analyzer'
 import { AuditRepo } from './audit/auditRepo'
@@ -15,6 +16,7 @@ import { collect } from './audit/collect'
 import { AuditScheduler } from './audit/scheduler'
 import { openDb } from './db'
 import { EnpassVault } from './enpass'
+import { setLang, t } from './i18n'
 import { KnownHostsFile } from './knownHosts'
 import { DB_FILE, LEGACY_NAME, migrateLegacyProfile } from './legacyProfile'
 import { Repo } from './repo'
@@ -122,7 +124,7 @@ function createAudit(
       if (run.serverId === null) return
       const name = repo.listServers().find((s) => s.id === run.serverId)?.name ?? ''
       if (run.status === 'awaiting_confirmation' && run.trigger === 'scheduled') {
-        notify(`Kennel: ${name}`, 'Проверка ждёт подтверждения команд', run.serverId)
+        notify(`Kennel: ${name}`, t('notify.awaitingConfirmation'), run.serverId)
       }
       if (run.status === 'done') {
         const previous = audit.previousDone(run.serverId, run.id)
@@ -130,7 +132,7 @@ function createAudit(
         if (alerts.length > 0) {
           notify(
             `Kennel: ${name}`,
-            `${alerts.length} новых проблем: ${alerts[0].title}`,
+            t('notify.newFindings', { count: alerts.length, title: alerts[0].title }),
             run.serverId
           )
         }
@@ -278,6 +280,11 @@ else {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('dev.kennel')
+  // Until the renderer reports the chosen language.
+  setLang(resolveLang('system', app.getLocale()))
+  ipcMain.on('app:setLanguage', (_e, lang: unknown) => {
+    if (isLang(lang)) setLang(lang)
+  })
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
 
   const db = openDb(join(app.getPath('userData'), DB_FILE))

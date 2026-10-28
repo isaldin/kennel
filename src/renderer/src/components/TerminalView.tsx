@@ -16,10 +16,12 @@ export function TerminalView({ serverId, active, onStatus }: Props): React.JSX.E
   const fitRef = useRef<FitAddon | null>(null)
   const termRef = useRef<Terminal | null>(null)
   const onStatusRef = useRef(onStatus)
-  const { prefs, theme } = usePrefs()
+  const { prefs, theme, t } = usePrefs()
+  const tRef = useRef(t)
   const lookRef = useRef({ prefs, theme })
   useEffect(() => {
     onStatusRef.current = onStatus
+    tRef.current = t
   })
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function TerminalView({ serverId, active, onStatus }: Props): React.JSX.E
             if (event.message === 'Connected') onStatusRef.current('connected')
           } else if (event.type === 'error') term.write(`\r\n\x1b[31m${event.message}\x1b[0m\r\n`)
           else if (event.type === 'closed') {
-            term.write('\r\n\x1b[2m[соединение закрыто]\x1b[0m\r\n')
+            term.write(`\r\n\x1b[2m[${tRef.current('common.connectionClosed')}]\x1b[0m\r\n`)
             onStatusRef.current('closed')
           }
         })

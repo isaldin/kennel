@@ -1,4 +1,5 @@
 import type { HostKeyPrompt } from '../../../shared/types'
+import { useT } from '../lib/prefsContext'
 import { Modal } from './Modal'
 
 export function HostKeyDialog({
@@ -8,28 +9,26 @@ export function HostKeyDialog({
   prompt: HostKeyPrompt
   onAnswer(accept: boolean): void
 }): React.JSX.Element {
+  const t = useT()
   const changed = prompt.kind === 'changed'
   const target = `${prompt.host}${prompt.port !== 22 ? ':' + prompt.port : ''}`
   return (
     <Modal
-      title={changed ? '⚠️ Ключ сервера изменился' : 'Новый сервер'}
+      title={changed ? t('server.hostKey.changedTitle') : t('server.hostKey.newTitle')}
       onClose={() => onAnswer(false)}
       footer={
         <>
-          <button onClick={() => onAnswer(false)}>Отмена</button>
+          <button onClick={() => onAnswer(false)}>{t('common.cancel')}</button>
           <button className={changed ? 'danger-solid' : 'primary'} onClick={() => onAnswer(true)}>
-            {changed ? 'Заменить ключ и подключиться' : 'Доверять и подключиться'}
+            {changed ? t('server.hostKey.replace') : t('server.hostKey.trust')}
           </button>
         </>
       }
     >
       {changed ? (
-        <p className="error">
-          Ключ {target} не совпадает с записью в ~/.ssh/known_hosts. Так бывает после переустановки
-          сервера, но может означать и перехват соединения. Подтверждай, только если знаешь причину.
-        </p>
+        <p className="error">{t('server.hostKey.changed', { target })}</p>
       ) : (
-        <p>Подключение к {target} впервые. Отпечаток будет добавлен в ~/.ssh/known_hosts.</p>
+        <p>{t('server.hostKey.new', { target })}</p>
       )}
       <p className="mono">
         {prompt.keyType}

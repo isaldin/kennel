@@ -8,6 +8,7 @@ import type {
   Thresholds
 } from '../../shared/audit'
 import type { Server, Service } from '../../shared/types'
+import { t as tr } from '../i18n'
 
 export interface RulesInput {
   servers: Server[]
@@ -94,10 +95,14 @@ function serverRules(
         serverId: id,
         subject: c.name,
         severity: 'info',
-        title: `Образ ${c.name} не обновлялся ${days} дн.`,
-        explanation: `Контейнер ${c.name} запущен из образа ${c.image}, собранного ${days} дней назад.`,
-        suggestedQuestion: 'Этот сервис ещё нужен? Если да, его стоит пересобрать или обновить.',
-        suggestedAction: 'Обновить образ или удалить контейнер'
+        title: tr('rules.staleImage.title', { name: c.name, count: days }),
+        explanation: tr('rules.staleImage.explanation', {
+          name: c.name,
+          image: c.image,
+          count: days
+        }),
+        suggestedQuestion: tr('rules.staleImage.question'),
+        suggestedAction: tr('rules.staleImage.action')
       })
     }
   }
@@ -110,10 +115,10 @@ function serverRules(
         serverId: id,
         subject: v.domain,
         severity: 'info',
-        title: `${v.domain}: нет запросов ${days} дн.`,
-        explanation: `Access log сайта ${v.domain} не менялся ${days} дней.`,
-        suggestedQuestion: 'Сайтом кто-то пользуется?',
-        suggestedAction: 'Отключить сайт или проверить DNS'
+        title: tr('rules.noTraffic.title', { domain: v.domain, count: days }),
+        explanation: tr('rules.noTraffic.explanation', { domain: v.domain, count: days }),
+        suggestedQuestion: tr('rules.noTraffic.question'),
+        suggestedAction: tr('rules.noTraffic.action')
       })
     }
   }
@@ -127,11 +132,11 @@ function serverRules(
         serverId: id,
         subject: c.name,
         severity: 'critical',
-        title: `${c.name} перезапускается`,
+        title: tr('rules.crashloop.title', { name: c.name }),
         explanation: grew
-          ? `Счётчик перезапусков вырос с ${before.restartCount} до ${c.restartCount} с прошлого снимка.`
-          : `Контейнер в состоянии restarting.`,
-        suggestedAction: 'Посмотреть логи контейнера'
+          ? tr('rules.crashloop.grew', { before: before.restartCount, after: c.restartCount })
+          : tr('rules.crashloop.restarting'),
+        suggestedAction: tr('rules.crashloop.action')
       })
     }
   }
@@ -147,9 +152,13 @@ function serverRules(
         serverId: id,
         subject: String(p.port),
         severity: 'critical',
-        title: `Порт ${p.port} открыт наружу`,
-        explanation: `${p.process || 'Процесс'} слушает ${p.address}:${p.port}. Базы и кэши обычно не должны быть доступны из интернета.`,
-        suggestedAction: 'Привязать к 127.0.0.1 или закрыть фаерволом'
+        title: tr('rules.publicPort.title', { port: p.port }),
+        explanation: tr('rules.publicPort.explanation', {
+          process: p.process || tr('rules.publicPort.process'),
+          address: p.address,
+          port: p.port
+        }),
+        suggestedAction: tr('rules.publicPort.action')
       })
     }
   }
@@ -165,9 +174,13 @@ function serverRules(
       serverId: id,
       subject: c.name,
       severity: 'info',
-      title: `Неизвестный контейнер ${c.name}`,
-      explanation: `Контейнер ${c.name} (${c.image}, ${c.state}) не записан в реестр сервисов.`,
-      suggestedQuestion: 'Что это и нужно ли оно?',
+      title: tr('rules.unknownContainer.title', { name: c.name }),
+      explanation: tr('rules.unknownContainer.explanation', {
+        name: c.name,
+        image: c.image,
+        state: c.state
+      }),
+      suggestedQuestion: tr('rules.unknown.question'),
       registryCandidate: { serverId: id, name, kind: coolify ? 'coolify' : 'docker' }
     })
   }
@@ -179,9 +192,9 @@ function serverRules(
       serverId: id,
       subject: u.name,
       severity: 'info',
-      title: `Неизвестный сервис ${u.name}`,
-      explanation: `systemd unit ${u.name} (${u.active}) установлен вручную и не записан в реестр.`,
-      suggestedQuestion: 'Что это и нужно ли оно?',
+      title: tr('rules.unknownUnit.title', { name: u.name }),
+      explanation: tr('rules.unknownUnit.explanation', { name: u.name, state: u.active }),
+      suggestedQuestion: tr('rules.unknown.question'),
       registryCandidate: { serverId: id, name: unitBase(u.name), kind: 'systemd' }
     })
   }
@@ -212,9 +225,9 @@ function serverRules(
         serverId: id,
         subject: s.name,
         severity: 'critical',
-        title: `${s.name} не работает`,
-        explanation: `Сервис ${s.name} (${s.kind}) отмечен как обязательный, но не найден среди работающих.`,
-        suggestedAction: 'Проверить и перезапустить, или снять пометку «должен работать»'
+        title: tr('rules.missing.title', { name: s.name }),
+        explanation: tr('rules.missing.explanation', { name: s.name, kind: s.kind }),
+        suggestedAction: tr('rules.missing.action')
       })
     }
   }
@@ -233,10 +246,16 @@ function serverRules(
         serverId: id,
         subject: 'host',
         severity: 'warning',
-        title: `Сервер ${server.name} простаивает`,
-        explanation: `Средняя загрузка за ${hosts.length} снимк.: RAM ${ramPct.toFixed(0)}%, CPU ${cpuPct.toFixed(1)}%, при этом он стоит ${server.monthlyCost} ${server.currency}/мес.`,
-        suggestedQuestion: 'Можно перенести сервисы на другой сервер и удалить этот?',
-        suggestedAction: 'Рассмотреть консолидацию'
+        title: tr('rules.idle.title', { name: server.name }),
+        explanation: tr('rules.idle.explanation', {
+          count: hosts.length,
+          ram: ramPct.toFixed(0),
+          cpu: cpuPct.toFixed(1),
+          cost: server.monthlyCost,
+          currency: server.currency
+        }),
+        suggestedQuestion: tr('rules.idle.question'),
+        suggestedAction: tr('rules.idle.action')
       })
     }
   }
@@ -252,10 +271,10 @@ function serverRules(
       severity: daysLeft < 0 ? 'critical' : 'warning',
       title:
         daysLeft < 0
-          ? `Сертификат ${c.domain} истёк`
-          : `Сертификат ${c.domain} истекает через ${Math.floor(daysLeft)} дн.`,
-      explanation: `Срок действия сертификата: ${c.notAfter}.`,
-      suggestedAction: 'Проверить автопродление (certbot / Caddy / Traefik)'
+          ? tr('rules.ssl.expired', { domain: c.domain })
+          : tr('rules.ssl.expiring', { domain: c.domain, count: Math.floor(daysLeft) }),
+      explanation: tr('rules.ssl.explanation', { notAfter: c.notAfter }),
+      suggestedAction: tr('rules.ssl.action')
     })
   }
 
@@ -267,9 +286,9 @@ function serverRules(
         serverId: id,
         subject: d.mount,
         severity: 'warning',
-        title: `Диск ${d.mount} заполнен на ${pct.toFixed(0)}%`,
-        explanation: `Занято ${d.used} из ${d.size} байт.`,
-        suggestedAction: 'Почистить docker images / логи или расширить диск'
+        title: tr('rules.disk.title', { mount: d.mount, pct: pct.toFixed(0) }),
+        explanation: tr('rules.disk.explanation', { used: d.used, size: d.size }),
+        suggestedAction: tr('rules.disk.action')
       })
     }
   }
@@ -295,10 +314,13 @@ function duplicateRules(servers: Server[], latest: Map<number, Snapshot>): Draft
       serverId: null,
       subject: repo,
       severity: 'info',
-      title: `${repo} запущен на ${ids.size} серверах`,
-      explanation: `Образ ${repo} работает на: ${[...ids].map((id) => names.get(id)).join(', ')}.`,
-      suggestedQuestion: 'Можно оставить один экземпляр?',
-      suggestedAction: 'Рассмотреть объединение'
+      title: tr('rules.duplicate.title', { repo, count: ids.size }),
+      explanation: tr('rules.duplicate.explanation', {
+        repo,
+        servers: [...ids].map((id) => names.get(id)).join(', ')
+      }),
+      suggestedQuestion: tr('rules.duplicate.question'),
+      suggestedAction: tr('rules.duplicate.action')
     }))
 }
 

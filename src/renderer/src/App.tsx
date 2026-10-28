@@ -21,6 +21,7 @@ import {
   type OpenChat
 } from './lib/chatDock'
 import { useEnpass } from './lib/enpassContext'
+import { usePrefs } from './lib/prefsContext'
 import { formatMoney, serverAddress, totalsByCurrency } from './lib/format'
 import { EMPTY_SERVER } from './lib/forms'
 
@@ -50,7 +51,7 @@ function Shell(): React.JSX.Element {
   const [answered, setAnswered] = useState<string[]>([])
   /** Finding chats docked on the right; one shows at a time, picked from the chat tabs. */
   const [openChats, setOpenChats] = useState<OpenChat[]>([])
-  /** The chat shown on the Серверы tab; a terminal tab shows the chat that opened it. */
+  /** The chat shown on the Servers tab; a terminal tab shows the chat that opened it. */
   const [homeChatId, setHomeChatId] = useState<string | null>(null)
   const [chatStatus, setChatStatus] = useState<Record<string, ChatStatus>>({})
   const [chatWidth, setChatWidth] = useState(() => {
@@ -61,6 +62,7 @@ function Shell(): React.JSX.Element {
     }
   })
   const enpass = useEnpass()
+  const { t, lang } = usePrefs()
 
   const applyServers = useCallback((list: Server[]) => {
     setServers(list)
@@ -223,11 +225,11 @@ function Shell(): React.JSX.Element {
       : servers
     const groups = new Map<string, Server[]>()
     for (const s of list) {
-      const group = s.project || 'Без проекта'
+      const group = s.project || t('app.noProject')
       groups.set(group, [...(groups.get(group) ?? []), s])
     }
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [servers, filter])
+  }, [servers, filter, t])
 
   const pendingRun = confirming.find((r) => !answered.includes(`${r.id}:${r.round}`))
   const shownChat = visibleChat(openChats, activeTab, HOME, homeChatId)
@@ -242,7 +244,7 @@ function Shell(): React.JSX.Element {
           className={`tab${activeTab === HOME ? ' active' : ''}`}
           onClick={() => setActiveTab(HOME)}
         >
-          Серверы
+          {t('app.serversTab')}
         </div>
         {tabs.map((tab) => (
           <div
@@ -272,7 +274,7 @@ function Shell(): React.JSX.Element {
             <aside className="sidebar">
               <input
                 className="search"
-                placeholder="Поиск"
+                placeholder={t('app.search')}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
@@ -290,34 +292,33 @@ function Shell(): React.JSX.Element {
                         <div className="server-name">{s.name}</div>
                         <div className="muted small">
                           {s.provider || serverAddress(s)}
-                          {s.monthlyCost > 0 && ` · ${formatMoney(s.monthlyCost, s.currency)}`}
+                          {s.monthlyCost > 0 &&
+                            ` · ${formatMoney(s.monthlyCost, s.currency, lang)}`}
                         </div>
                       </div>
                     ))}
                   </div>
                 ))}
-                {servers.length === 0 && (
-                  <p className="muted small empty">
-                    Серверов пока нет. Добавь вручную или импортируй из ~/.ssh/config.
-                  </p>
-                )}
+                {servers.length === 0 && <p className="muted small empty">{t('app.noServers')}</p>}
               </div>
               <div className="sidebar-footer">
                 <div className="totals">
                   {totals.length ? (
                     totals.map(([currency, sum]) => (
-                      <div key={currency}>{formatMoney(sum, currency)} / мес</div>
+                      <div key={currency}>
+                        {t('app.perMonth', { amount: formatMoney(sum, currency, lang) })}
+                      </div>
                     ))
                   ) : (
-                    <span className="muted small">Стоимость не указана</span>
+                    <span className="muted small">{t('app.noCost')}</span>
                   )}
                 </div>
                 <div className="sidebar-actions">
-                  <button onClick={() => setCreating(true)}>+ Сервер</button>
-                  <button onClick={() => setImporting(true)}>Импорт</button>
+                  <button onClick={() => setCreating(true)}>{t('app.addServer')}</button>
+                  <button onClick={() => setImporting(true)}>{t('app.import')}</button>
                   <button
                     className="icon-only"
-                    title="Настройки (⌘,)"
+                    title={t('app.settingsHint')}
                     onClick={() => setShowSettings(true)}
                   >
                     ⚙
@@ -327,21 +328,21 @@ function Shell(): React.JSX.Element {
                   {enpass.status.vaultPath ? (
                     enpass.status.unlocked ? (
                       <>
-                        🔓 Enpass открыт{' '}
+                        🔓 {t('app.enpassOpen')}{' '}
                         <a href="#" onClick={(e) => (e.preventDefault(), enpass.lock())}>
-                          заблокировать
+                          {t('app.enpassLock')}
                         </a>
                       </>
                     ) : (
                       <>
                         🔒 Enpass{' '}
                         <a href="#" onClick={(e) => (e.preventDefault(), enpass.ensureUnlocked())}>
-                          разблокировать
+                          {t('app.enpassUnlock')}
                         </a>
                       </>
                     )
                   ) : (
-                    <span className="muted">Enpass не найден</span>
+                    <span className="muted">{t('app.enpassNotFound')}</span>
                   )}
                 </div>
               </div>
@@ -356,7 +357,7 @@ function Shell(): React.JSX.Element {
                   onChanged={reload}
                 />
               ) : (
-                <div className="placeholder muted">Выбери сервер слева</div>
+                <div className="placeholder muted">{t('app.pickServer')}</div>
               )}
             </main>
           </>
@@ -375,11 +376,7 @@ function Shell(): React.JSX.Element {
         </div>
         {shownChat && (
           <div className="chat-column" style={{ width: chatWidth }}>
-            <div
-              className="chat-resizer"
-              title="Потяни, чтобы изменить ширину"
-              onMouseDown={startResize}
-            />
+            <div className="chat-resizer" title={t('app.resizeHint')} onMouseDown={startResize} />
             {openChats.length > 1 && (
               <div className="chat-tabs">
                 {openChats.map((c) => (
@@ -390,15 +387,15 @@ function Shell(): React.JSX.Element {
                     onClick={() => selectChat(c)}
                   >
                     {chatStatus[c.id] === 'awaiting_confirmation' ? (
-                      <span className="dot connecting" title="Ждёт подтверждения команд" />
+                      <span className="dot connecting" title={t('app.awaitingConfirmation')} />
                     ) : chatStatus[c.id] === 'thinking' ? (
-                      <span className="dot connecting" title="Claude отвечает" />
+                      <span className="dot connecting" title={t('app.claudeAnswering')} />
                     ) : null}
                     <span className="chat-tab-title">{c.title}</span>
-                    {terminalOpen(c) && <span title="Есть свой терминал">⌨</span>}
+                    {terminalOpen(c) && <span title={t('app.hasTerminal')}>⌨</span>}
                     <button
                       className="tab-close"
-                      title="Закрыть чат"
+                      title={t('app.closeChat')}
                       onClick={(e) => {
                         e.stopPropagation()
                         closeChat(c.id)
@@ -433,7 +430,7 @@ function Shell(): React.JSX.Element {
 
       {creating && (
         <ServerForm
-          title="Новый сервер"
+          title={t('app.newServer')}
           initial={EMPTY_SERVER}
           onClose={() => setCreating(false)}
           onSave={async (input) => {

@@ -1,26 +1,29 @@
 import { useEffect, useState } from 'react'
 import type { Thresholds } from '../../../shared/audit'
+import type { MessageKey } from '../../../shared/i18n'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { Modal } from './Modal'
 
-const FIELDS: [keyof Omit<Thresholds, 'publicPorts'>, string][] = [
-  ['staleImageDays', 'Образ старше, дней'],
-  ['noTrafficDays', 'Сайт без запросов, дней'],
-  ['sslDays', 'Сертификат истекает через, дней'],
-  ['diskPct', 'Диск заполнен, %'],
-  ['idleRamPct', 'Простой: RAM ниже, %'],
-  ['idleCpuPct', 'Простой: CPU ниже, %']
+const FIELDS: [keyof Omit<Thresholds, 'publicPorts'>, MessageKey][] = [
+  ['staleImageDays', 'audit.thresholds.staleImageDays'],
+  ['noTrafficDays', 'audit.thresholds.noTrafficDays'],
+  ['sslDays', 'audit.thresholds.sslDays'],
+  ['diskPct', 'audit.thresholds.diskPct'],
+  ['idleRamPct', 'audit.thresholds.idleRamPct'],
+  ['idleCpuPct', 'audit.thresholds.idleCpuPct']
 ]
 
 export function ThresholdsDialog({ onClose }: { onClose(): void }): React.JSX.Element {
   const [form, setForm] = useState<Thresholds | null>(null)
   const [ports, setPorts] = useState('')
   const [error, setError] = useState('')
+  const t = useT()
 
   useEffect(() => {
-    window.api.audit.thresholds().then((t) => {
-      setForm(t)
-      setPorts(t.publicPorts.join(', '))
+    window.api.audit.thresholds().then((saved) => {
+      setForm(saved)
+      setPorts(saved.publicPorts.join(', '))
     })
   }, [])
 
@@ -40,13 +43,13 @@ export function ThresholdsDialog({ onClose }: { onClose(): void }): React.JSX.El
 
   return (
     <Modal
-      title="Пороги правил"
+      title={t('audit.thresholds')}
       onClose={onClose}
       footer={
         <>
-          <button onClick={onClose}>Отмена</button>
+          <button onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary" disabled={!form} onClick={save}>
-            Сохранить
+            {t('common.save')}
           </button>
         </>
       }
@@ -55,7 +58,7 @@ export function ThresholdsDialog({ onClose }: { onClose(): void }): React.JSX.El
         <div className="form-grid">
           {FIELDS.map(([key, label]) => (
             <label key={key}>
-              {label}
+              {t(label)}
               <input
                 type="number"
                 min={0}
@@ -65,7 +68,7 @@ export function ThresholdsDialog({ onClose }: { onClose(): void }): React.JSX.El
             </label>
           ))}
           <label className="span-2">
-            Порты, которые не должны быть открыты наружу
+            {t('audit.thresholds.publicPorts')}
             <input value={ports} onChange={(e) => setPorts(e.target.value)} />
           </label>
         </div>

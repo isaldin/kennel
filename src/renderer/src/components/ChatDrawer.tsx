@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage, FindingChat } from '../../../shared/audit'
+import type { MessageKey } from '../../../shared/i18n'
 import type { Server } from '../../../shared/types'
+import { errorText } from '../lib/audit'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { CommandConfirmDialog } from './CommandConfirmDialog'
 
 interface Props {
@@ -16,12 +19,12 @@ interface Props {
   onClose(): void
 }
 
-const STARTERS = ['Что это и зачем оно нужно?', 'Как это исправить?', 'Как остановить или удалить?']
+const STARTERS: MessageKey[] = ['chat.starter.what', 'chat.starter.fix', 'chat.starter.remove']
 
-const COMMAND_STATUS: Record<NonNullable<ChatMessage['commands']>[number]['status'], string> = {
-  ran: 'выполнено',
-  declined: 'отклонено',
-  rejected: 'не из allowlist'
+const COMMAND_STATUS: Record<NonNullable<ChatMessage['commands']>[number]['status'], MessageKey> = {
+  ran: 'chat.command.ran',
+  declined: 'chat.command.declined',
+  rejected: 'chat.command.rejected'
 }
 
 /** Splits a reply into prose and fenced code blocks; code blocks get a copy button. */
@@ -40,6 +43,7 @@ function splitFences(text: string): { code: boolean; text: string }[] {
 
 function CodeBlock({ text }: { text: string }): React.JSX.Element {
   const [copied, setCopied] = useState(false)
+  const t = useT()
   const copy = async (): Promise<void> => {
     await navigator.clipboard.writeText(text)
     setCopied(true)
@@ -49,7 +53,7 @@ function CodeBlock({ text }: { text: string }): React.JSX.Element {
     <div className="chat-code">
       <pre className="mono">{text}</pre>
       <button className="ghost small" onClick={copy}>
-        {copied ? 'Скопировано' : 'Копировать'}
+        {copied ? t('chat.copied') : t('chat.copy')}
       </button>
     </div>
   )
@@ -76,13 +80,14 @@ function Prose({ text }: { text: string }): React.JSX.Element {
 }
 
 function Message({ message }: { message: ChatMessage }): React.JSX.Element {
+  const t = useT()
   if (message.role === 'commands') {
     return (
       <div className="chat-commands small">
         {message.commands?.map((c, i) => (
           <div key={i}>
             <code className="mono">{c.command}</code>{' '}
-            <span className="muted">— {COMMAND_STATUS[c.status]}</span>
+            <span className="muted">— {t(COMMAND_STATUS[c.status])}</span>
           </div>
         ))}
       </div>
@@ -120,6 +125,7 @@ export function ChatDrawer({
   const [now, setNow] = useState(() => Date.now())
   const bottom = useRef<HTMLDivElement>(null)
   const busy = chat !== null && chat.status !== 'idle'
+  const t = useT()
 
   useEffect(() => {
     window.api.chat.get(server.id, findingKey).then(setChat)
@@ -157,21 +163,17 @@ export function ChatDrawer({
     <aside className="chat-panel" style={hidden ? { display: 'none' } : undefined}>
       <header className="chat-header">
         <div>
-          <div className="muted small">Обсуждение с Claude · {server.name}</div>
+          <div className="muted small">{t('chat.header', { server: server.name })}</div>
           <div className="chat-title">{findingTitle}</div>
         </div>
         <div className="actions">
           <button
-            title={
-              terminalOpen
-                ? 'Перейти в терминал этого чата'
-                : 'Открыть SSH-терминал этого сервера рядом с чатом'
-            }
+            title={terminalOpen ? t('chat.toTerminalHint') : t('chat.openTerminalHint')}
             onClick={onOpenTerminal}
           >
-            {terminalOpen ? 'К терминалу' : 'Открыть терминал'}
+            {terminalOpen ? t('chat.toTerminal') : t('chat.openTerminal')}
           </button>
-          <button className="ghost" title="Закрыть" onClick={onClose}>
+          <button className="ghost" title={t('common.close')} onClick={onClose}>
             ✕
           </button>
         </div>
@@ -180,13 +182,10 @@ export function ChatDrawer({
       <div className="chat-body">
         {!chat?.messages.length && (
           <div className="chat-starters">
-            <p className="muted small">
-              Claude видит эту проблему и снимок сервера. Он может попросить прочитать логи или
-              конфиги (ты подтверждаешь каждую команду), но сам ничего на сервере не меняет.
-            </p>
-            {STARTERS.map((q) => (
-              <button key={q} onClick={() => send(q)} disabled={busy}>
-                {q}
+            <p className="muted small">{t('chat.intro')}</p>
+            {STARTERS.map((key) => (
+              <button key={key} onClick={() => send(t(key))} disabled={busy}>
+                {t(key)}
               </button>
             ))}
           </div>
@@ -197,18 +196,18 @@ export function ChatDrawer({
         {busy && chat && (
           <div className="chat-thinking muted small">
             {chat.status === 'awaiting_confirmation'
-              ? 'Ждёт подтверждения команд…'
-              : 'Claude думает…'}{' '}
+              ? t('chat.awaitingConfirmation')
+              : t('chat.thinking')}{' '}
             {chat.startedAt && formatElapsed(now - Date.parse(chat.startedAt))}{' '}
             <button
               className="ghost small"
               onClick={() => window.api.chat.stop(server.id, findingKey)}
             >
-              Остановить
+              {t('chat.stop')}
             </button>
           </div>
         )}
-        {chat?.error && !busy && <div className="notice">{chat.error}</div>}
+        {chat?.error && !busy && <div className="notice">{errorText(chat.error, t)}</div>}
         {error && <p className="error">{error}</p>}
         <div ref={bottom} />
       </div>
@@ -222,7 +221,7 @@ export function ChatDrawer({
       >
         <textarea
           rows={3}
-          placeholder="Спроси про эту проблему… (Enter — отправить, Shift+Enter — новая строка)"
+          placeholder={t('chat.placeholder')}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -233,7 +232,7 @@ export function ChatDrawer({
           }}
         />
         <button className="primary" type="submit" disabled={busy || !draft.trim()}>
-          Отправить
+          {t('chat.send')}
         </button>
       </form>
 

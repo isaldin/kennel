@@ -12,7 +12,9 @@ import type {
   Severity,
   Snapshot
 } from '../../shared/audit'
+import type { Lang } from '../../shared/i18n'
 import type { Server, Service } from '../../shared/types'
+import { getLang, t } from '../i18n'
 import { maskSecrets, type RawCommandRequest } from './allowlist'
 
 export interface AnalysisOutput {
@@ -110,25 +112,31 @@ export const ANALYSIS_SCHEMA = {
 }
 
 export const FINAL_ROUND_NOTE =
-  'Это последний раунд: больше команд выполнить нельзя, command_requests должен быть пустым.'
+  'This is the last round: no more commands can run, so command_requests must be empty.'
 
-export const COMMANDS_HELP = `Доступны только эти command_id и аргументы:
+export const COMMANDS_HELP = `Only these command_id values and arguments are available:
    - docker_logs {container, n≤200}; docker_inspect {container}
    - systemctl_status {unit}; journal_tail {unit, n≤200}
-   - read_config {path} — файлы в /etc/nginx/, /etc/caddy/, /etc/systemd/system/ и docker-compose*.yml в /opt, /srv, /home, /root
-   - list_dir {path} — те же каталоги, /opt, /srv, /home/<user>/apps
-   - http_head {url} — только домены этого сервера
-   Каждую команду пользователь подтверждает вручную, поэтому проси только то, что действительно нужно.`
+   - read_config {path}: files in /etc/nginx/, /etc/caddy/, /etc/systemd/system/ and docker-compose*.yml in /opt, /srv, /home, /root
+   - list_dir {path}: the same directories, /opt, /srv, /home/<user>/apps
+   - http_head {url}: only this server's own domains
+   The user confirms every command by hand, so ask only for what you really need.`
 
-export const SYSTEM_PROMPT = `Ты аудитор личного VPS-сервера. Тебе дают описание сервера (с ценой), реестр его сервисов, свежий снимок сервера, сигналы детерминированных правил и прошлые решения пользователя.
+export const SYSTEM_PROMPT = `You audit a personal VPS. You get the server's description (with its price), its service registry, a fresh snapshot of the server, signals from deterministic rules and the user's past decisions.
 
-Задачи:
-1. items: для каждого контейнера/сервиса/сайта, назначение которого неочевидно из реестра, коротко опиши, что это (what_it_is), к какому проекту относится (project_guess) и насколько уверен (confidence 0..1).
-2. findings: что требует внимания пользователя — забытые и устаревшие сервисы, то, что крутится без надобности, риски, дубли. Не повторяй сигналы правил дословно: дополни их объяснением или пропусти. Не поднимай вопросы, по которым уже есть решение пользователя.
-   key — стабильный идентификатор вида <тема>:<server_id>:<объект> латиницей, одинаковый между запусками для одной и той же проблемы.
-3. command_requests: если для вывода не хватает данных, попроси команды. ${COMMANDS_HELP}
+Tasks:
+1. items: for every container, service or site whose purpose is not obvious from the registry, briefly say what it is (what_it_is), which project it belongs to (project_guess) and how sure you are (confidence 0..1).
+2. findings: what needs the user's attention: forgotten and outdated services, things running for no reason, risks, duplicates. Do not repeat rule signals word for word: add an explanation or skip them. Do not raise issues the user has already decided on.
+   key is a stable ASCII identifier of the form <topic>:<server_id>:<object>, the same across runs for the same problem.
+3. command_requests: if you lack data for a conclusion, ask for commands. ${COMMANDS_HELP}
 
-Пиши по-русски, кратко и по делу. Ссылайся на конкретные имена контейнеров, юнитов и доменов из снимков.`
+Be brief and to the point. Refer to specific container, unit and domain names from the snapshots.`
+
+const LANGUAGE_NAMES: Record<Lang, string> = { en: 'English', ru: 'Russian' }
+
+/** Appended to a system prompt so Claude writes for the user in the interface language. */
+export const replyLanguageNote = (lang: Lang): string =>
+  `Write all text meant for the user in ${LANGUAGE_NAMES[lang]}.`
 
 const LABEL_WHITELIST = (key: string): boolean =>
   key.startsWith('traefik.') || key.startsWith('coolify.') || key === 'com.docker.compose.project'
@@ -216,15 +224,15 @@ export function buildAnalysisPrompt(i: {
     explanation
   }))
   return [
-    '## Серверы',
+    '## Servers',
     json(servers),
-    '## Реестр сервисов',
+    '## Service registry',
     json(services),
-    '## Снимки',
+    '## Snapshots',
     json(snapshots),
-    '## Сигналы правил',
+    '## Rule signals',
     json(signals),
-    '## Решения пользователя',
+    '## User decisions',
     json(i.decisions),
     ...(i.finalRound ? [FINAL_ROUND_NOTE] : [])
   ].join('\n\n')
@@ -233,13 +241,13 @@ export function buildAnalysisPrompt(i: {
 export function buildFollowUpPrompt(
   results: { request: CommandRequest; output: string | null; declined: boolean }[],
   finalRound: boolean,
-  instruction = 'Обнови полный ответ по схеме с учётом этих данных.'
+  instruction = 'Update the full answer per the schema, taking this data into account.'
 ): string {
-  const parts = ['Результаты запрошенных команд:']
+  const parts = ['Results of the requested commands:']
   for (const { request, output, declined } of results) {
-    const head = `### ${request.commandId} на сервере ${request.serverId}: ${request.command ?? JSON.stringify(request.args)}`
-    if (request.error) parts.push(`${head}\nОтклонено allowlist: ${request.error}`)
-    else if (declined) parts.push(`${head}\nПользователь отклонил команду (declined).`)
+    const head = `### ${request.commandId} on server ${request.serverId}: ${request.command ?? JSON.stringify(request.args)}`
+    if (request.error) parts.push(`${head}\nRejected by the allowlist: ${request.error}`)
+    else if (declined) parts.push(`${head}\nThe user declined this command.`)
     else parts.push(`${head}\n\`\`\`\n${output ?? ''}\n\`\`\``)
   }
   parts.push(instruction)
@@ -272,7 +280,7 @@ export async function resolveClaudeBin(env: NodeJS.ProcessEnv = process.env): Pr
   const candidates = [env.KENNEL_CLAUDE_BIN, await loginShellLookup(env)]
   if (env.HOME) candidates.push(join(env.HOME, '.local/bin/claude'))
   for (const c of candidates) if (c && (await isExecutable(c))) return c
-  throw new Error('Claude CLI не найден. Установите Claude Code или задайте KENNEL_CLAUDE_BIN')
+  throw new Error(t('main.claudeNotFound'))
 }
 
 interface RawOutput {
@@ -409,7 +417,7 @@ export async function runClaude(o: ClaudeCall): Promise<ClaudeResult> {
   const { sessionId, output } = await invokeClaude<RawOutput>({
     ...o,
     schema: ANALYSIS_SCHEMA,
-    systemPrompt: SYSTEM_PROMPT
+    systemPrompt: `${SYSTEM_PROMPT}\n\n${replyLanguageNote(getLang())}`
   })
   return { sessionId, output: toOutput(output) }
 }

@@ -154,8 +154,11 @@ export type DecisionInput = Omit<Decision, 'key' | 'decidedAt'>
 
 export type AuditStatus = 'collecting' | 'analyzing' | 'awaiting_confirmation' | 'done' | 'failed'
 
-/** analyzerError of a run the user stopped. */
-export const AUDIT_STOPPED = 'Остановлено пользователем'
+/** analyzerError of a run the user stopped. Stored as is; the renderer shows a translation. */
+export const AUDIT_STOPPED = 'Stopped by user'
+
+/** Error of a run or chat cut off by quitting the app. Stored as is; the renderer shows a translation. */
+export const INTERRUPTED = 'Interrupted: the app was closed'
 
 export interface AuditRun {
   id: number

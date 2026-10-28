@@ -1,5 +1,5 @@
 import type { Db } from '../db'
-import type { FindingChat } from '../../shared/audit'
+import { INTERRUPTED, type FindingChat } from '../../shared/audit'
 
 export class ChatRepo {
   constructor(private readonly db: Db) {}
@@ -39,7 +39,7 @@ export class ChatRepo {
         status: 'idle',
         pendingCommands: [],
         startedAt: null,
-        error: 'Прервано: приложение было закрыто'
+        error: INTERRUPTED
       })
     }
   }

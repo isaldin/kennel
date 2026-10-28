@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SshConfigHost } from '../../../shared/types'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { Modal } from './Modal'
 
 /** Git hosting entries in ssh config are not servers the user pays for. */
@@ -13,6 +14,7 @@ export function ImportDialog({
   onDone(): void
   onClose(): void
 }): React.JSX.Element {
+  const t = useT()
   const [hosts, setHosts] = useState<SshConfigHost[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
@@ -48,14 +50,14 @@ export function ImportDialog({
 
   return (
     <Modal
-      title="Импорт из ~/.ssh/config"
+      title={t('server.import.title')}
       onClose={onClose}
       wide
       footer={
         <>
-          <button onClick={onClose}>Отмена</button>
+          <button onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary" disabled={selected.size === 0} onClick={submit}>
-            Импортировать ({selected.size})
+            {t('server.import.submit', { count: selected.size })}
           </button>
         </>
       }
@@ -65,9 +67,9 @@ export function ImportDialog({
         <thead>
           <tr>
             <th />
-            <th>Алиас</th>
-            <th>Адрес</th>
-            <th>Ключ</th>
+            <th>{t('server.import.alias')}</th>
+            <th>{t('server.import.address')}</th>
+            <th>{t('server.import.key')}</th>
           </tr>
         </thead>
         <tbody>
@@ -88,7 +90,9 @@ export function ImportDialog({
                 {h.port !== 22 ? `:${h.port}` : ''}
               </td>
               <td className="small">
-                {h.alreadyImported ? 'уже добавлен' : h.identityFile.replace(/^.*\//, '')}
+                {h.alreadyImported
+                  ? t('server.import.already')
+                  : h.identityFile.replace(/^.*\//, '')}
               </td>
             </tr>
           ))}

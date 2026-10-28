@@ -38,32 +38,32 @@ function lines(value: unknown): number {
   if (value === undefined) return DEFAULT_LINES
   const n = Number(value)
   if (!Number.isInteger(n) || n < 1 || n > MAX_LINES) {
-    throw new Rejected(`n должно быть от 1 до ${MAX_LINES}`)
+    throw new Rejected(`n must be between 1 and ${MAX_LINES}`)
   }
   return n
 }
 
 function container(value: unknown, snapshot: Snapshot): string {
   const name = String(value ?? '')
-  if (!CONTAINER_NAME.test(name)) throw new Rejected('Недопустимое имя контейнера')
+  if (!CONTAINER_NAME.test(name)) throw new Rejected('Invalid container name')
   if (!snapshot.containers.some((c) => c.name === name || c.id === name)) {
-    throw new Rejected(`Контейнера ${name} нет в снимке сервера`)
+    throw new Rejected(`Container ${name} is not in the server snapshot`)
   }
   return name
 }
 
 function unit(value: unknown, snapshot: Snapshot): string {
   const name = String(value ?? '')
-  if (!UNIT_NAME.test(name)) throw new Rejected('Недопустимое имя unit')
+  if (!UNIT_NAME.test(name)) throw new Rejected('Invalid unit name')
   const found = snapshot.units.find((u) => u.name === name || u.name === `${name}.service`)
-  if (!found) throw new Rejected(`Unit ${name} нет в снимке сервера`)
+  if (!found) throw new Rejected(`Unit ${name} is not in the server snapshot`)
   return found.name
 }
 
 function absolutePath(value: unknown): string {
   const raw = String(value ?? '')
   if (raw.includes('\0') || !raw.startsWith('/') || raw.split('/').includes('..')) {
-    throw new Rejected('Недопустимый путь')
+    throw new Rejected('Invalid path')
   }
   const path = posix.normalize(raw)
   return path.length > 1 ? path.replace(/\/$/, '') : path
@@ -75,13 +75,13 @@ function configPath(value: unknown): string {
   if (COMPOSE_FILE.test(posix.basename(path)) && COMPOSE_ROOTS.some((d) => within(path, d))) {
     return path
   }
-  throw new Rejected('Путь вне разрешённых каталогов')
+  throw new Rejected('Path is outside the allowed directories')
 }
 
 function listPath(value: unknown): string {
   const path = absolutePath(value)
   if (LIST_DIRS.some((d) => within(path, d)) || HOME_APPS.test(path)) return path
-  throw new Rejected('Путь вне разрешённых каталогов')
+  throw new Rejected('Path is outside the allowed directories')
 }
 
 function serverUrl(value: unknown, snapshot: Snapshot): string {
@@ -89,11 +89,12 @@ function serverUrl(value: unknown, snapshot: Snapshot): string {
   try {
     url = new URL(String(value ?? ''))
   } catch {
-    throw new Rejected('Недопустимый URL')
+    throw new Rejected('Invalid URL')
   }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Rejected('Только http(s)')
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    throw new Rejected('Only http(s) is allowed')
   if (!snapshotDomains(snapshot).includes(url.hostname)) {
-    throw new Rejected(`Домен ${url.hostname} не обслуживается этим сервером`)
+    throw new Rejected(`Domain ${url.hostname} is not served by this server`)
   }
   return url.toString()
 }
@@ -115,7 +116,7 @@ function render(commandId: string, args: Record<string, unknown>, snapshot: Snap
     case 'http_head':
       return `curl -sI --max-time 5 ${shq(serverUrl(args.url, snapshot))}`
     default:
-      throw new Rejected('Команда не из allowlist')
+      throw new Rejected('Command is not in the allowlist')
   }
 }
 
@@ -132,7 +133,7 @@ export function validateRequest(raw: RawCommandRequest, snapshot: Snapshot | nul
     reason: raw.reason
   }
   try {
-    if (!snapshot) throw new Rejected('Нет снимка этого сервера')
+    if (!snapshot) throw new Rejected('No snapshot of this server')
     return { ...base, command: render(raw.command_id, raw.args ?? {}, snapshot), error: null }
   } catch (err) {
     if (!(err instanceof Rejected)) throw err
@@ -142,7 +143,7 @@ export function validateRequest(raw: RawCommandRequest, snapshot: Snapshot | nul
 
 export function maskSecrets(text: string): string {
   return text
-    .replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, '[скрыт ключ]')
+    .replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, '[key hidden]')
     .replace(/(authorization\s*:\s*).+/gi, '$1***')
     .replace(
       /\b(\w*(?:PASS|SECRET|TOKEN|KEY|DSN|CREDENTIAL)\w*["']?\s*[=:]\s*["']?)[^\s"',]+/gi,
@@ -174,7 +175,7 @@ export function sanitizeOutput(commandId: string, text: string): string {
 
 export function clipOutput(text: string, max = 20_000): string {
   if (text.length <= max) return text
-  return `${text.slice(0, max)}\n…[обрезано ${text.length - max} символов]`
+  return `${text.slice(0, max)}\n…[clipped ${text.length - max} characters]`
 }
 
 /**
@@ -185,13 +186,13 @@ export async function executeRequest(
   request: CommandRequest,
   exec: (command: string) => Promise<ExecResult>
 ): Promise<string> {
-  if (!request.command) return 'Ошибка: команда отклонена'
+  if (!request.command) return 'Error: command rejected'
   try {
     const { stdout, stderr, code } = await exec(request.command)
     const out = sanitizeOutput(request.commandId, stdout)
     const text = stderr.trim() ? `${out}\n[stderr]\n${maskSecrets(stderr)}` : out
     return clipOutput(`${text}\n[exit ${code}]`)
   } catch (err) {
-    return `Ошибка: ${err instanceof Error ? err.message : String(err)}`
+    return `Error: ${err instanceof Error ? err.message : String(err)}`
   }
 }

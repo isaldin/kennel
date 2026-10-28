@@ -1,7 +1,10 @@
+import { LANGS, type LangChoice } from '../../../shared/i18n'
 import { THEMES, resolveTheme, type Theme, type ThemeChoice } from './themes'
 
 /** Per-machine look-and-feel settings, kept in localStorage. */
 export interface Prefs {
+  /** Interface language; "system" follows the OS. */
+  language: LangChoice
   theme: ThemeChoice
   /** Page zoom factor for the whole interface. */
   zoom: number
@@ -11,6 +14,7 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
+  language: 'system',
   theme: 'dark',
   zoom: 1,
   termFontSize: 13,
@@ -21,7 +25,7 @@ export const DEFAULT_PREFS: Prefs = {
 export const ZOOMS = [0.9, 1, 1.1, 1.25]
 export const TERM_FONT_SIZES = [11, 12, 13, 14, 15, 16, 18]
 export const TERM_FONTS: [string, string][] = [
-  [DEFAULT_PREFS.termFontFamily, 'JetBrains Mono (или SF Mono)'],
+  [DEFAULT_PREFS.termFontFamily, 'JetBrains Mono / SF Mono'],
   ['"SF Mono", Menlo, monospace', 'SF Mono'],
   ['Menlo, monospace', 'Menlo'],
   ['"Fira Code", Menlo, monospace', 'Fira Code'],
@@ -39,6 +43,9 @@ export function parsePrefs(raw: string | null): Prefs {
     return DEFAULT_PREFS
   }
   const prefs = { ...DEFAULT_PREFS }
+  if (saved.language === 'system' || LANGS.includes(saved.language as never)) {
+    prefs.language = saved.language!
+  }
   if (saved.theme === 'system' || (saved.theme && saved.theme in THEMES)) prefs.theme = saved.theme
   if (saved.zoom && ZOOMS.includes(saved.zoom)) prefs.zoom = saved.zoom
   if (saved.termFontSize && TERM_FONT_SIZES.includes(saved.termFontSize)) {

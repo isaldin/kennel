@@ -9,6 +9,7 @@ import {
   type Snapshot
 } from '../../shared/audit'
 import type { Server } from '../../shared/types'
+import { t } from '../i18n'
 import type { Repo } from '../repo'
 import type { ExecResult } from '../sshConnect'
 import { executeRequest, validateRequest } from './allowlist'
@@ -67,9 +68,9 @@ export class AuditService {
   }
 
   start(trigger: AuditRun['trigger'], serverId: number): AuditRun {
-    if (this.active.has(serverId)) throw new Error('Проверка этого сервера уже идёт')
+    if (this.active.has(serverId)) throw new Error(t('main.auditRunning'))
     const server = this.deps.repo.listServers().find((s) => s.id === serverId)
-    if (!server) throw new Error(`Сервер ${serverId} не найден`)
+    if (!server) throw new Error(t('main.serverNotFound', { id: serverId }))
     const run = this.deps.audit.createRun(trigger, serverId)
     const entry: ActiveRun = {
       runId: run.id,
@@ -116,7 +117,7 @@ export class AuditService {
           kind: candidate.kind,
           url: '',
           port: null,
-          description: 'Добавлено из аудита',
+          description: t('main.addedFromAudit'),
           enpassItemUuid: '',
           expected: true,
           notes: ''

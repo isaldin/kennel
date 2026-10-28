@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import type { ServiceInput, ServiceKind } from '../../../shared/types'
+import type { T } from '../../../shared/i18n'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { EnpassLink } from './Enpass'
 import { Modal } from './Modal'
 
-const KINDS: { value: ServiceKind; label: string }[] = [
-  { value: 'docker', label: 'Docker' },
-  { value: 'coolify', label: 'Coolify' },
-  { value: 'systemd', label: 'systemd' },
-  { value: 'other', label: 'Другое' }
+/** Product names stay as is; only "other" is translated. */
+const KINDS: { value: ServiceKind; label: (t: T) => string }[] = [
+  { value: 'docker', label: () => 'Docker' },
+  { value: 'coolify', label: () => 'Coolify' },
+  { value: 'systemd', label: () => 'systemd' },
+  { value: 'other', label: (t) => t('server.kindOther') }
 ]
 
 interface Props {
@@ -19,6 +22,7 @@ interface Props {
 }
 
 export function ServiceForm({ initial, title, onSave, onClose }: Props): React.JSX.Element {
+  const t = useT()
   const [form, setForm] = useState<ServiceInput>(initial)
   const [error, setError] = useState('')
   const set = <K extends keyof ServiceInput>(key: K, value: ServiceInput[K]): void =>
@@ -39,16 +43,16 @@ export function ServiceForm({ initial, title, onSave, onClose }: Props): React.J
       wide
       footer={
         <>
-          <button onClick={onClose}>Отмена</button>
+          <button onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary" disabled={!form.name.trim()} onClick={save}>
-            Сохранить
+            {t('common.save')}
           </button>
         </>
       }
     >
       <div className="form-grid">
         <label>
-          Название
+          {t('server.form.name')}
           <input
             autoFocus
             value={form.name}
@@ -57,17 +61,17 @@ export function ServiceForm({ initial, title, onSave, onClose }: Props): React.J
           />
         </label>
         <label>
-          Где запущено
+          {t('server.service.where')}
           <select value={form.kind} onChange={(e) => set('kind', e.target.value as ServiceKind)}>
             {KINDS.map((k) => (
               <option key={k.value} value={k.value}>
-                {k.label}
+                {k.label(t)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          URL / домен
+          {t('server.service.url')}
           <input
             value={form.url}
             onChange={(e) => set('url', e.target.value)}
@@ -75,7 +79,7 @@ export function ServiceForm({ initial, title, onSave, onClose }: Props): React.J
           />
         </label>
         <label>
-          Порт
+          {t('server.form.port')}
           <input
             type="number"
             value={form.port ?? ''}
@@ -83,7 +87,7 @@ export function ServiceForm({ initial, title, onSave, onClose }: Props): React.J
           />
         </label>
         <label className="span-2">
-          Что это
+          {t('server.service.what')}
           <input value={form.description} onChange={(e) => set('description', e.target.value)} />
         </label>
         <label className="checkbox span-2">
@@ -92,14 +96,14 @@ export function ServiceForm({ initial, title, onSave, onClose }: Props): React.J
             checked={form.expected}
             onChange={(e) => set('expected', e.target.checked)}
           />
-          Должен работать постоянно
+          {t('server.service.expected')}
         </label>
         <div className="span-2">
-          <div className="field-label">Доступы (Enpass)</div>
+          <div className="field-label">{t('server.service.access')}</div>
           <EnpassLink uuid={form.enpassItemUuid} onChange={(uuid) => set('enpassItemUuid', uuid)} />
         </div>
         <label className="span-2">
-          Заметки
+          {t('server.notes')}
           <textarea rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
       </div>

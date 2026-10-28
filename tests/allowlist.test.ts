@@ -89,7 +89,7 @@ describe('validateRequest', () => {
   })
 
   it('rejects unknown commands and containers', () => {
-    expect(rejected(req('rm', {}))).toBe('Команда не из allowlist')
+    expect(rejected(req('rm', {}))).toBe('Command is not in the allowlist')
     rejected(req('docker_logs', { container: 'other' }))
     rejected(req('docker_logs', { container: 'app; rm -rf /' }))
     rejected(req('docker_logs', { container: 'app', n: 10000 }))
@@ -148,7 +148,7 @@ describe('maskSecrets', () => {
       expect(masked).not.toContain(secret)
     }
     expect(masked).toContain('PORT=8080')
-    expect(masked).toContain('[скрыт ключ]')
+    expect(masked).toContain('[key hidden]')
   })
 })
 
@@ -156,7 +156,7 @@ describe('clipOutput', () => {
   it('truncates long output and says how much was cut', () => {
     const clipped = clipOutput('x'.repeat(25000))
     expect(clipped.length).toBeLessThanOrEqual(20100)
-    expect(clipped).toContain('обрезано 5000')
+    expect(clipped).toContain('clipped 5000')
     expect(clipOutput('short')).toBe('short')
   })
 })

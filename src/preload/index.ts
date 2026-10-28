@@ -82,6 +82,7 @@ const api: Api = {
     }
   },
   setZoom: (factor) => webFrame.setZoomFactor(factor),
+  setLanguage: (lang) => ipcRenderer.send('app:setLanguage', lang),
   openExternal: (url) => ipcRenderer.send('openExternal', url)
 }
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Snapshot } from '../../../shared/audit'
+import { formatDateTime } from '../lib/format'
+import { usePrefs } from '../lib/prefsContext'
 
 interface Props {
   serverId: number
@@ -7,11 +9,9 @@ interface Props {
   version: string | null
 }
 
-const formatDate = (iso: string): string =>
-  new Date(iso).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
-
 export function SnapshotPanel({ serverId, version }: Props): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<Snapshot | null | undefined>(undefined)
+  const { t, lang } = usePrefs()
 
   useEffect(() => {
     window.api.audit.snapshot(serverId).then(setSnapshot)
@@ -21,8 +21,8 @@ export function SnapshotPanel({ serverId, version }: Props): React.JSX.Element {
   if (snapshot === null) {
     return (
       <section>
-        <h2>Что крутится</h2>
-        <p className="muted">Снимка ещё нет — запустите аудит.</p>
+        <h2>{t('audit.snapshot.title')}</h2>
+        <p className="muted">{t('audit.snapshot.none')}</p>
       </section>
     )
   }
@@ -31,18 +31,20 @@ export function SnapshotPanel({ serverId, version }: Props): React.JSX.Element {
   return (
     <section>
       <div className="section-header">
-        <h2>Что крутится</h2>
-        <span className="muted small">снимок {formatDate(snapshot.takenAt)}</span>
+        <h2>{t('audit.snapshot.title')}</h2>
+        <span className="muted small">
+          {t('audit.snapshot.takenAt', { date: formatDateTime(snapshot.takenAt, lang) })}
+        </span>
       </div>
 
       {snapshot.containers.length > 0 && (
         <table className="table">
           <thead>
             <tr>
-              <th>Контейнер</th>
-              <th>Образ</th>
-              <th>Состояние</th>
-              <th>Рестарты</th>
+              <th>{t('audit.snapshot.container')}</th>
+              <th>{t('audit.snapshot.image')}</th>
+              <th>{t('audit.snapshot.state')}</th>
+              <th>{t('audit.snapshot.restarts')}</th>
             </tr>
           </thead>
           <tbody>
@@ -66,20 +68,22 @@ export function SnapshotPanel({ serverId, version }: Props): React.JSX.Element {
       )}
       {snapshot.vhosts.length > 0 && (
         <p>
-          <span className="muted">Сайты: </span>
+          <span className="muted">{t('audit.snapshot.sites')} </span>
           {snapshot.vhosts.map((v) => v.domain).join(', ')}
         </p>
       )}
       {snapshot.disks.length > 0 && (
         <p>
-          <span className="muted">Диски: </span>
+          <span className="muted">{t('audit.snapshot.disks')} </span>
           {snapshot.disks
             .map((d) => `${d.mount} ${Math.round((d.used / d.size) * 100)}%`)
             .join(', ')}
         </p>
       )}
       {snapshot.unavailable.length > 0 && (
-        <p className="muted small">Не удалось собрать: {snapshot.unavailable.join(', ')}</p>
+        <p className="muted small">
+          {t('audit.snapshot.unavailable', { sections: snapshot.unavailable.join(', ') })}
+        </p>
       )}
     </section>
   )

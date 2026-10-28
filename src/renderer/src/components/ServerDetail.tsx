@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Finding } from '../../../shared/audit'
 import type { Server, Service, ServiceInput } from '../../../shared/types'
 import { formatMoney, serverAddress } from '../lib/format'
+import { usePrefs } from '../lib/prefsContext'
 import { EnpassLink } from './Enpass'
 import { emptyService, toInput } from '../lib/forms'
 import { ServerForm } from './ServerForm'
@@ -29,6 +30,7 @@ export function ServerDetail({
   onDiscuss,
   onChanged
 }: Props): React.JSX.Element {
+  const { t, lang } = usePrefs()
   const [services, setServices] = useState<Service[]>([])
   const [editing, setEditing] = useState(false)
   const [serviceForm, setServiceForm] = useState<{ id: number | null; input: ServiceInput } | null>(
@@ -49,12 +51,7 @@ export function ServerDetail({
   }
 
   const remove = async (): Promise<void> => {
-    if (
-      !confirm(
-        `Удалить сервер «${server.name}» и все его сервисы из списка? На самом сервере ничего не изменится.`
-      )
-    )
-      return
+    if (!confirm(t('server.confirmDelete', { name: server.name }))) return
     await window.api.servers.remove(server.id)
     onChanged()
   }
@@ -67,7 +64,7 @@ export function ServerDetail({
   }
 
   const removeService = async (service: Service): Promise<void> => {
-    if (!confirm(`Удалить сервис «${service.name}» из списка?`)) return
+    if (!confirm(t('server.confirmDeleteService', { name: service.name }))) return
     await window.api.services.remove(service.id)
     loadServices()
   }
@@ -83,44 +80,44 @@ export function ServerDetail({
         </div>
         <div className="actions">
           <button className="primary" onClick={() => onConnect(server)}>
-            Подключиться
+            {t('server.connect')}
           </button>
-          <button onClick={() => setEditing(true)}>Изменить</button>
+          <button onClick={() => setEditing(true)}>{t('common.edit')}</button>
           <button className="ghost danger" onClick={remove}>
-            Удалить
+            {t('common.delete')}
           </button>
         </div>
       </header>
 
       <section className="cards">
         <div className="card">
-          <div className="card-label">В месяц</div>
+          <div className="card-label">{t('server.perMonth')}</div>
           <div className="card-value">
-            {server.monthlyCost > 0 ? formatMoney(server.monthlyCost, server.currency) : '—'}
+            {server.monthlyCost > 0 ? formatMoney(server.monthlyCost, server.currency, lang) : '—'}
           </div>
           {server.billingDay && (
-            <div className="muted small">оплата {server.billingDay}-го числа</div>
+            <div className="muted small">{t('server.billingDay', { day: server.billingDay })}</div>
           )}
         </div>
         <div className="card">
-          <div className="card-label">Вход</div>
+          <div className="card-label">{t('server.login')}</div>
           <div className="card-value small">
             {server.identityFile
               ? server.identityFile.replace(/^.*\//, '')
               : server.sshAlias
-                ? 'из ssh config'
+                ? t('server.loginSshConfig')
                 : 'ssh-agent'}
-            {server.enpassItemUuid ? ' + пароль Enpass' : ''}
+            {server.enpassItemUuid ? t('server.loginEnpass') : ''}
           </div>
         </div>
         <div className="card">
-          <div className="card-label">Сервисов</div>
+          <div className="card-label">{t('server.servicesCount')}</div>
           <div className="card-value">{services.length}</div>
         </div>
       </section>
 
       <section>
-        <h2>Доступы</h2>
+        <h2>{t('server.access')}</h2>
         <EnpassLink uuid={server.enpassItemUuid} onChange={linkEnpass} />
         {server.panelUrl && (
           <p>
@@ -128,7 +125,7 @@ export function ServerDetail({
               href="#"
               onClick={(e) => (e.preventDefault(), window.api.openExternal(server.panelUrl))}
             >
-              Панель провайдера ↗
+              {t('server.providerPanel')}
             </a>
           </p>
         )}
@@ -136,24 +133,21 @@ export function ServerDetail({
 
       <section>
         <div className="section-header">
-          <h2>Сервисы</h2>
+          <h2>{t('server.services')}</h2>
           <button onClick={() => setServiceForm({ id: null, input: emptyService(server.id) })}>
-            + Сервис
+            {t('server.addService')}
           </button>
         </div>
         {services.length === 0 ? (
-          <p className="muted">
-            Пока пусто. Добавь сайты, ботов и базы, которые здесь крутятся, или запусти аудит: он
-            найдёт их сам.
-          </p>
+          <p className="muted">{t('server.noServices')}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Название</th>
-                <th>Где</th>
-                <th>URL</th>
-                <th>Что это</th>
+                <th>{t('server.colName')}</th>
+                <th>{t('server.colWhere')}</th>
+                <th>{t('server.colUrl')}</th>
+                <th>{t('server.colWhat')}</th>
                 <th />
               </tr>
             </thead>
@@ -162,8 +156,8 @@ export function ServerDetail({
                 <tr key={s.id}>
                   <td>
                     {s.name}
-                    {!s.expected && <span className="badge">не обязателен</span>}
-                    {s.enpassItemUuid && <span title="Есть доступы в Enpass"> 🔑</span>}
+                    {!s.expected && <span className="badge">{t('server.notRequired')}</span>}
+                    {s.enpassItemUuid && <span title={t('server.hasEnpass')}> 🔑</span>}
                   </td>
                   <td>{KIND_LABEL[s.kind]}</td>
                   <td>
@@ -190,7 +184,7 @@ export function ServerDetail({
                         setServiceForm({ id, input })
                       }}
                     >
-                      Изменить
+                      {t('common.edit')}
                     </button>
                     <button className="ghost danger" onClick={() => removeService(s)}>
                       ✕
@@ -207,14 +201,14 @@ export function ServerDetail({
 
       {server.notes && (
         <section>
-          <h2>Заметки</h2>
+          <h2>{t('server.notes')}</h2>
           <p className="notes">{server.notes}</p>
         </section>
       )}
 
       {editing && (
         <ServerForm
-          title="Изменить сервер"
+          title={t('server.editServer')}
           initial={toInput(server)}
           onClose={() => setEditing(false)}
           onSave={async (input) => {
@@ -226,7 +220,7 @@ export function ServerDetail({
       )}
       {serviceForm && (
         <ServiceForm
-          title={serviceForm.id ? 'Изменить сервис' : 'Новый сервис'}
+          title={serviceForm.id ? t('server.editService') : t('server.newService')}
           initial={serviceForm.input}
           onClose={() => setServiceForm(null)}
           onSave={saveService}

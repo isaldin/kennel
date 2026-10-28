@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ServerInput } from '../../../shared/types'
 import { cleanError } from '../lib/errors'
+import { useT } from '../lib/prefsContext'
 import { Modal } from './Modal'
 
 const PROVIDERS = ['DigitalOcean', 'Contabo', 'hoster.kz', 'Hetzner', 'Vultr', 'Timeweb']
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function ServerForm({ initial, title, onSave, onClose }: Props): React.JSX.Element {
+  const t = useT()
   const [form, setForm] = useState<ServerInput>(initial)
   const [error, setError] = useState('')
   const set = <K extends keyof ServerInput>(key: K, value: ServerInput[K]): void =>
@@ -36,16 +38,16 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
       wide
       footer={
         <>
-          <button onClick={onClose}>Отмена</button>
+          <button onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary" disabled={!valid} onClick={save}>
-            Сохранить
+            {t('common.save')}
           </button>
         </>
       }
     >
       <div className="form-grid">
         <label>
-          Название
+          {t('server.form.name')}
           <input
             autoFocus
             value={form.name}
@@ -54,7 +56,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           />
         </label>
         <label>
-          Проект
+          {t('server.form.project')}
           <input
             value={form.project}
             onChange={(e) => set('project', e.target.value)}
@@ -62,7 +64,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           />
         </label>
         <label>
-          Провайдер
+          {t('server.form.provider')}
           <input
             list="providers"
             value={form.provider}
@@ -75,7 +77,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           </datalist>
         </label>
         <label>
-          Панель провайдера (URL)
+          {t('server.form.panelUrl')}
           <input
             value={form.panelUrl}
             onChange={(e) => set('panelUrl', e.target.value)}
@@ -83,25 +85,25 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           />
         </label>
 
-        <h3 className="span-2">Подключение</h3>
+        <h3 className="span-2">{t('server.form.connection')}</h3>
         <label>
-          Хост / IP
+          {t('server.form.host')}
           <input
             value={form.host}
             onChange={(e) => set('host', e.target.value)}
-            placeholder="Пусто — взять из ssh config"
+            placeholder={t('server.form.hostPlaceholder')}
           />
         </label>
         <label>
-          Алиас в ~/.ssh/config
+          {t('server.form.alias')}
           <input value={form.sshAlias} onChange={(e) => set('sshAlias', e.target.value)} />
         </label>
         <label>
-          Пользователь
+          {t('server.form.user')}
           <input value={form.username} onChange={(e) => set('username', e.target.value)} />
         </label>
         <label>
-          Порт
+          {t('server.form.port')}
           <input
             type="number"
             value={form.port}
@@ -109,17 +111,17 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           />
         </label>
         <label className="span-2">
-          Ключ (путь к файлу)
+          {t('server.form.identityFile')}
           <input
             value={form.identityFile}
             onChange={(e) => set('identityFile', e.target.value)}
-            placeholder="Пусто — ssh-agent и ключи из ssh config / ~/.ssh/id_*"
+            placeholder={t('server.form.identityPlaceholder')}
           />
         </label>
 
-        <h3 className="span-2">Оплата</h3>
+        <h3 className="span-2">{t('server.form.billing')}</h3>
         <label>
-          Стоимость в месяц
+          {t('server.form.monthlyCost')}
           <input
             type="number"
             step="0.01"
@@ -128,7 +130,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           />
         </label>
         <label>
-          Валюта
+          {t('server.form.currency')}
           <select value={form.currency} onChange={(e) => set('currency', e.target.value)}>
             {CURRENCIES.map((c) => (
               <option key={c}>{c}</option>
@@ -136,7 +138,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
           </select>
         </label>
         <label>
-          День оплаты
+          {t('server.form.billingDay')}
           <input
             type="number"
             min={1}
@@ -147,7 +149,7 @@ export function ServerForm({ initial, title, onSave, onClose }: Props): React.JS
         </label>
         <div />
         <label className="span-2">
-          Заметки
+          {t('server.notes')}
           <textarea rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
       </div>

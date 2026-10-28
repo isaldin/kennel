@@ -3,6 +3,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { RawCommandRequest } from '../src/main/audit/allowlist'
+import { replyLanguageNote } from '../src/main/audit/analyzer'
 import { AuditRepo } from '../src/main/audit/auditRepo'
 import {
   CHAT_SCHEMA,
@@ -15,7 +16,13 @@ import { ChatRepo } from '../src/main/audit/chatRepo'
 import { ChatService, type ChatDeps } from '../src/main/audit/chatService'
 import { openDb } from '../src/main/db'
 import { Repo } from '../src/main/repo'
-import { AUDIT_STOPPED, type FindingChat, type Finding, type Snapshot } from '../src/shared/audit'
+import {
+  AUDIT_STOPPED,
+  INTERRUPTED,
+  type FindingChat,
+  type Finding,
+  type Snapshot
+} from '../src/shared/audit'
 import type { ServerInput } from '../src/shared/types'
 
 const FAKE = join(__dirname, 'fixtures/fake-claude.mjs')
@@ -116,7 +123,7 @@ describe('ChatRepo', () => {
     expect(chats.get(id, 'k')).toMatchObject({
       status: 'idle',
       startedAt: null,
-      error: 'Прервано: приложение было закрыто'
+      error: INTERRUPTED
     })
     repo.removeServer(id)
     expect(chats.keys(id)).toEqual([])
@@ -140,13 +147,13 @@ describe('chat prompt', () => {
   })
 
   it('asks the model to give one step at a time and wait for the result', () => {
-    expect(CHAT_SYSTEM_PROMPT).toContain('ПО ОДНОМУ ШАГУ')
-    expect(CHAT_SYSTEM_PROMPT).toContain('дождись')
+    expect(CHAT_SYSTEM_PROMPT).toContain('ONE STEP AT A TIME')
+    expect(CHAT_SYSTEM_PROMPT).toContain('wait for it')
   })
 
   it('keeps the model read-only and lets it ask for allowlisted commands', () => {
     expect(CHAT_SCHEMA.required).toEqual(['reply', 'command_requests'])
-    expect(CHAT_SYSTEM_PROMPT).toContain('не можешь')
+    expect(CHAT_SYSTEM_PROMPT).toContain('cannot change anything')
     expect(CHAT_SYSTEM_PROMPT).toContain('docker_logs')
   })
 })
@@ -174,7 +181,9 @@ describe('runChatClaude', () => {
     expect(result).toEqual({ sessionId: 's1', output: { reply: 'Ответ', commandRequests: [LOGS] } })
     const { argv } = JSON.parse(readFileSync(log, 'utf8').trim()) as { argv: string[] }
     expect(argv[argv.indexOf('--json-schema') + 1]).toBe(JSON.stringify(CHAT_SCHEMA))
-    expect(argv[argv.indexOf('--system-prompt') + 1]).toBe(CHAT_SYSTEM_PROMPT)
+    expect(argv[argv.indexOf('--system-prompt') + 1]).toBe(
+      `${CHAT_SYSTEM_PROMPT}\n\n${replyLanguageNote('en')}`
+    )
     expect(argv[argv.indexOf('--resume') + 1]).toBe('s0')
     expect(argv).toContain('--restricted')
   })
@@ -286,7 +295,7 @@ describe('ChatService', () => {
   it('refuses a second question while Claude is answering', async () => {
     const h = harness()
     h.service.send(1, FINDING.key, 'a')
-    expect(() => h.service.send(1, FINDING.key, 'b')).toThrow('Claude ещё отвечает')
+    expect(() => h.service.send(1, FINDING.key, 'b')).toThrow('Claude is still answering')
     await h.service.done()
   })
 
@@ -314,6 +323,6 @@ describe('ChatService', () => {
 
   it('refuses to open a chat for a finding that is not in the latest audit', () => {
     const h = harness()
-    expect(() => h.service.send(1, 'nope', 'a')).toThrow('Проблема не найдена')
+    expect(() => h.service.send(1, 'nope', 'a')).toThrow('This problem is not in the latest audit')
   })
 })
