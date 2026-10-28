@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/isaldin/kennel?sort=semver)](https://github.com/isaldin/kennel/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/isaldin/kennel/total)](https://github.com/isaldin/kennel/releases)
 [![License: MIT](https://img.shields.io/github/license/isaldin/kennel)](LICENSE)
-![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 ![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)
 
 [English](README.md) · Русский
@@ -18,7 +18,7 @@
 </div>
 
 > [!NOTE]
-> Kennel разрабатывается и проверяется на macOS. Сборки под Windows и Linux собирает CI, но вручную их пока не тестировали.
+> Kennel разрабатывается и проверяется на macOS. Сборки под Linux собирает CI, но вручную их пока не тестировали. Windows пока не поддерживается.
 
 ## Возможности
 
@@ -38,7 +38,6 @@
 | --------------------- | ---------------------------- |
 | macOS (Apple Silicon) | `kennel-<version>-arm64.dmg` |
 | macOS (Intel)         | `kennel-<version>-x64.dmg`   |
-| Windows               | `kennel-<version>-setup.exe` |
 | Linux                 | `.AppImage` или `.deb`       |
 
 ### Первый запуск
@@ -50,7 +49,6 @@
   xattr -cr /Applications/Kennel.app
   ```
   или откройте его через правый клик → **Открыть**.
-- **Windows:** SmartScreen → **Подробнее** → **Выполнить в любом случае**.
 - **Linux (AppImage):** `chmod +x kennel-*.AppImage` и запустите.
 
 ## Что нужно
@@ -83,7 +81,7 @@ npm run build:mac    # или build:win / build:linux
 
 1. Поднимите `version` в `package.json` и закоммитьте.
 2. Поставьте тег и запушьте его: `git tag v0.1.0 && git push origin v0.1.0`.
-3. [Release workflow](.github/workflows/release.yml) соберёт установщики для macOS, Windows и Linux и приложит их к черновику релиза.
+3. [Release workflow](.github/workflows/release.yml) соберёт установщики для macOS и Linux и приложит их к черновику релиза.
 4. Проверьте черновик на GitHub, напишите описание и опубликуйте.
 
 ## Лицензия

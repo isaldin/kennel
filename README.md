@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/isaldin/kennel?sort=semver)](https://github.com/isaldin/kennel/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/isaldin/kennel/total)](https://github.com/isaldin/kennel/releases)
 [![License: MIT](https://img.shields.io/github/license/isaldin/kennel)](LICENSE)
-![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 ![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)
 
 English · [Русский](README.ru.md)
@@ -18,7 +18,7 @@ English · [Русский](README.ru.md)
 </div>
 
 > [!NOTE]
-> The interface is in Russian. Kennel is built and tested on macOS; the Windows and Linux builds are produced by CI but have not been tested by hand yet.
+> The interface is in Russian. Kennel is built and tested on macOS; the Linux builds are produced by CI but have not been tested by hand yet. Windows is not supported yet.
 
 ## Features
 
@@ -38,7 +38,6 @@ Get the latest build from **[Releases](https://github.com/isaldin/kennel/release
 | --------------------- | ---------------------------- |
 | macOS (Apple Silicon) | `kennel-<version>-arm64.dmg` |
 | macOS (Intel)         | `kennel-<version>-x64.dmg`   |
-| Windows               | `kennel-<version>-setup.exe` |
 | Linux                 | `.AppImage` or `.deb`        |
 
 ### First launch
@@ -50,7 +49,6 @@ The builds are not code-signed yet, so the OS will warn you once.
   xattr -cr /Applications/Kennel.app
   ```
   or right-click the app → **Open**.
-- **Windows:** SmartScreen → **More info** → **Run anyway**.
 - **Linux (AppImage):** `chmod +x kennel-*.AppImage` and run it.
 
 ## Requirements
@@ -83,7 +81,7 @@ Stack: Electron, electron-vite, React 19, TypeScript, ssh2, xterm.js, better-sql
 
 1. Bump `version` in `package.json` and commit.
 2. Tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
-3. The [Release workflow](.github/workflows/release.yml) builds macOS, Windows and Linux installers and attaches them to a draft release.
+3. The [Release workflow](.github/workflows/release.yml) builds macOS and Linux installers and attaches them to a draft release.
 4. Review the draft on GitHub, write the notes and publish it.
 
 ## License
